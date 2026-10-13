@@ -11,6 +11,7 @@
 
 
 
+<meta name="lyra-version" content="online-connected-2026-10-13">
 <title>LYRA｜つながる、もっとそばに</title>
 <style>
 :root{--ink:#0d2553;--muted:#73809a;--blue:#087cfa;--cyan:#25dce3;--line:#e7ecf4;--glass:#ffffffd8;--gradient:linear-gradient(115deg,#0079ff 0%,#17b8fa 54%,#3ce2dc 100%);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",Meiryo,sans-serif;color:var(--ink);-webkit-tap-highlight-color:transparent}
@@ -142,8 +143,8 @@ render();
 /* LYRA online mode (Supabase auth + reciprocal friend approval + Realtime text chat).
    Do not put service_role or sb_secret_ credentials in public HTML. */
 const LYRA_PROJECT = {
-  url: '',              // 例: https://abcdefghijk.supabase.co
-  publishableKey: ''     // Supabase Project Settings > API Keys > publishable / anon
+  url: 'https://owwmvyxmlgwnbvsfogdt.supabase.co',
+  publishableKey: 'sb_publishable_WLuXX3-sbLz89gHt9cs6iw_oPKCTRVA'
 };
 let lyraClient=null, lyraUser=null, lyraProfile=null, lyraFriends=[], lyraConnections=[],
     lyraLatest={}, lyraRoomMessages=[], lyraActivePeer=null, lyraChannel=[], lyraAuthMode='signin',
@@ -334,6 +335,24 @@ window.addEventListener('DOMContentLoaded',async()=>{
  }catch(e){lyraPaint();lyraStatus('起動エラー: '+e.message)}
 });
 
+</script>
+<script>
+// Old LYRA demo releases cached index.html indefinitely. Disable their offline cache,
+// because this connected chat requires fresh web content and an internet connection.
+window.addEventListener('load', () => {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(registrations =>
+      Promise.all(registrations
+        .filter(registration => location.href.startsWith(registration.scope))
+        .map(registration => registration.unregister()))
+    ).catch(() => {});
+  }
+  if ('caches' in window) {
+    caches.keys().then(keys => Promise.all(keys
+      .filter(name => name.startsWith('lyra-ui-'))
+      .map(name => caches.delete(name)))).catch(() => {});
+  }
+});
 </script>
 </body>
 </html>
