@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="lyra-build" content="20261013-avatar-v1">
+<meta name="lyra-build" content="20261014-local-ja-en-beta1">
 <meta name="theme-color" content="#eaf8ff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -81,6 +81,27 @@
 .lyra-profile-image-edit:after{content:'📷';position:absolute;bottom:-3px;right:-5px;background:#edf8ff;border:2px solid white;border-radius:99px;font-size:15px;width:29px;height:29px;display:grid;place-items:center;box-shadow:0 2px 8px #194c8033}
 .round-btn .live-avatar{border:0;box-shadow:none}
  .rtc-avatar .live-avatar{border:3px solid rgba(255,255,255,.4)}
+
+/* LYRA: friend chat translation (does not affect voice or video) */
+.lyra-translate-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#f7fbff;border-bottom:1px solid #dceaf8;padding:8px 13px;font-size:12px;color:#284b76}
+.lyra-translate-toolbar label{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.lyra-translate-toolbar select{border:1px solid #bdd9ef;border-radius:12px;padding:8px 7px;color:#153965;background:#fff;font-size:12px;max-width:150px}
+.lyra-translate-toolbar input{accent-color:#0b89fa;width:17px;height:17px}
+.lyra-translate-note{background:#f7fbff;color:#7186a5;font-size:10px;padding:0 13px 7px;line-height:1.5;border-bottom:1px solid #dfedfa}
+.msg .lyra-msg-holder{max-width:79%;display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
+.msg.mine .lyra-msg-holder{align-items:flex-end}
+.msg .lyra-msg-holder .msg-bubble{max-width:100%;width:fit-content;white-space:pre-wrap}
+.lyra-translated-text{border-top:1px solid #bed8ed6c;margin-top:8px;padding-top:8px;white-space:pre-wrap;font-size:13px;line-height:1.65}
+.lyra-translated-label{display:block;font-size:10px;opacity:.75;font-weight:700;padding-bottom:3px}
+.lyra-translate-action{border:1px solid #cee4fa;background:#ffffffcc;border-radius:13px;color:#2376ad;font-size:11px;font-weight:700;padding:5px 10px;min-height:27px;box-shadow:0 2px 7px #a2cce525}
+.lyra-translate-action:disabled{opacity:.55}
+.lyra-translate-error{font-size:11px;color:#945320;padding:4px 0;max-width:200px;line-height:1.4}
+@media(max-width:370px){.lyra-translate-toolbar{gap:5px;padding:7px}.lyra-translate-toolbar select{max-width:106px}}
+.lyra-local-status{font-size:11px;line-height:1.55;color:#416088;background:#e9f7ff;padding:9px 13px;border-bottom:1px solid #d7e9f8}
+.lyra-local-setup{font-size:11px;border:1px solid #a8d8f5;background:linear-gradient(135deg,#f4faff,#d8f1ff);border-radius:13px;padding:8px 10px;color:#1364ad;font-weight:700;min-height:36px}
+.lyra-local-setup:disabled{opacity:.6}.lyra-local-state{font-size:11px;color:#335a84;line-height:1.5}
+.lyra-local-err{font-size:11px;color:#a04836;margin:5px 0 2px;line-height:1.4}
+
 </style>
 
 <style>
@@ -462,6 +483,7 @@ async function lyraSubmitAuth(event){event.preventDefault();if(!lyraClient)retur
 function lyraUnsubscribe(){for(const c of lyraChannel){lyraClient?.removeChannel(c)}lyraChannel=[];if(lyraPoll)clearInterval(lyraPoll);lyraPoll=null;}
 async function lyraApplySession(user){
  const previous=lyraUser?.id||null;
+ if(user&&previous!==user.id){try{const o=JSON.parse(localStorage.getItem('lyra_localtrans_pref_v2_'+user.id)||'{}');lyraTranslateLang=LYRA_TRANSLATION_LANGS[o.lang]?o.lang:'JA';lyraTranslateAuto=o.auto===true;}catch(e){lyraTranslateLang='JA';lyraTranslateAuto=false;}lyraTranslationCache.clear();lyraTranslationFailures.clear();}
  if(!user){lyraUnsubscribe();lyraSessionLoading=null;lyraUser=null;lyraProfile=null;lyraFriends=[];lyraConnections=[];lyraAvatarPaths=Object.create(null);lyraAvatarFetchedAt=0;lyraAvatarFriendKey='';lyraRoomMessages=[];lyraActivePeer=null;view='home';lyraPaint();return}
  if(previous===user.id && (lyraProfile || lyraSessionLoading===user.id))return;
  lyraUnsubscribe();lyraSessionLoading=user.id;lyraUser=user;lyraProfile=null;lyraAvatarPaths=Object.create(null);lyraAvatarFetchedAt=0;lyraAvatarFriendKey='';lyraActivePeer=null;view='home';lyraPaintLoading();
@@ -538,14 +560,118 @@ async function lyraRespond(id,accept){try{const {error}=await lyraClient.rpc('ly
  catch(e){lyraStatus('操作できませんでした: '+e.message)}}
 async function lyraOpenRoom(id){if(!lyraAccepted().some(c=>c.other_user_id===id))return lyraStatus('承認済みの友だちのみチャットできます');
  lyraActivePeer=id;view='room';lyraRoomMessages=[];lyraPaint();await lyraRefreshRoom()}
+
+// LYRA local JP-EN translation (experimental). No paid translation API.
+// No message text is sent to a translation endpoint. Browser downloads JS/model assets
+// on first use; local models are evaluated inside a Web Worker.
+const LYRA_TRANSLATION_LANGS={JA:'日本語',EN:'English'};
+let lyraTranslationCache=new Map(),lyraTranslationPending=new Set(),lyraTranslationFailures=new Map();
+let lyraTranslateLang='JA',lyraTranslateAuto=false,lyraLocalWorker=null;
+let lyraLocalSeq=0,lyraLocalRequests=new Map(),lyraLocalState='未準備';
+let lyraLocalReady=new Set();
+const LYRA_LOCAL_PHRASES={
+ 'こんにちは':['Hello.','こんにちは。'], 'こんばんは':['Good evening.','こんばんは。'], 'おはよう':['Good morning.','おはよう。'],
+ 'おはようございます':['Good morning.','おはようございます。'], 'ありがとう':['Thank you.','ありがとう。'],
+ 'ありがとうございます':['Thank you very much.','ありがとうございます。'], 'またね':['See you later.','またね。'],
+ 'おやすみ':['Good night.','おやすみ。'], '元気ですか':['How are you?','元気ですか？'],
+ 'はじめまして':['Nice to meet you.','はじめまして。'], 'よろしくお願いします':['Nice to meet you.','よろしくお願いします。'],
+ 'はい':['Yes.','はい。'], 'いいえ':['No.','いいえ。'], 'ごめんなさい':['Sorry.','ごめんなさい。'],
+ '大丈夫です':['It is okay.','大丈夫です。'], '今どこですか':['Where are you now?','今どこですか？'],
+ '明日会いましょう':['Let’s meet tomorrow.','明日会いましょう。'], '電話できますか':['Can we call?','電話できますか？'],
+ '何時に会いますか':['What time shall we meet?','何時に会いますか？'],
+ 'hello':['Hello.','こんにちは。'], 'hi':['Hi.','やあ。'], 'good morning':['Good morning.','おはようございます。'],
+ 'good evening':['Good evening.','こんばんは。'], 'thank you':['Thank you.','ありがとう。'], 'thanks':['Thanks.','ありがとう。'],
+ 'good night':['Good night.','おやすみなさい。'], 'how are you':['How are you?','元気ですか？'],
+ 'see you':['See you.','またね。'], 'see you tomorrow':['See you tomorrow.','また明日。'],
+ 'yes':['Yes.','はい。'], 'no':['No.','いいえ。'], 'sorry':['Sorry.','ごめんなさい。'],
+ 'nice to meet you':['Nice to meet you.','はじめまして。'],
+ 'where are you':['Where are you?','どこにいますか？'],
+ 'i love you':['I love you.','愛しています。'],
+};
+function lyraNormalizePhrase(s){return String(s).normalize('NFKC').trim().toLowerCase().replace(/[\s\u3000]+/g,' ').replace(/[.!?。！？、,]+$/g,'').trim();}
+function lyraLocalPhrase(text,target){const pair=LYRA_LOCAL_PHRASES[lyraNormalizePhrase(text)];if(!pair)return null;return target==='EN'?pair[0]:pair[1]}
+function lyraGuessLanguage(text){const jp=(text.match(/[\u3040-\u30ff\u3400-\u9fff]/g)||[]).length;const en=(text.match(/[a-z]/gi)||[]).length;return jp>0?'JA':en>0?'EN':null}
+function lyraTranslatePrefKey(){return 'lyra_localtrans_pref_v2_'+(lyraUser?.id||'guest')}
+function lyraLoadTranslatePrefs(){try{const o=JSON.parse(localStorage.getItem(lyraTranslatePrefKey())||'{}');lyraTranslateLang=LYRA_TRANSLATION_LANGS[o.lang]?o.lang:'JA';lyraTranslateAuto=o.auto===true;}catch(e){lyraTranslateLang='JA';lyraTranslateAuto=false}}
+function lyraSaveTranslatePrefs(){try{localStorage.setItem(lyraTranslatePrefKey(),JSON.stringify({lang:lyraTranslateLang,auto:lyraTranslateAuto}))}catch(e){}}
+function lyraTranslationId(msgId){return (lyraUser?.id||'guest')+':'+msgId+':'+lyraTranslateLang}
+function lyraLocalStatus(value){lyraLocalState=value;const label=document.getElementById('lyraLocalState');if(label)label.textContent=value;}
+function lyraTranslationTools(){return `<div class="lyra-translate-toolbar"><label>🌐 翻訳先 <select aria-label="翻訳先の言語" onchange="lyraChangeTranslateLang(this.value)">${Object.entries(LYRA_TRANSLATION_LANGS).map(([code,name])=>`<option value="${code}" ${lyraTranslateLang===code?'selected':''}>${name}</option>`).join('')}</select></label><label><input type="checkbox" ${lyraTranslateAuto?'checked':''} onchange="lyraToggleAutoTranslate(this.checked)">受信を自動翻訳</label><button class="lyra-local-setup" type="button" onclick="lyraPrepareLocalModel()">📦 端末内モデルを準備</button></div><div class="lyra-local-status"><span id="lyraLocalState">${escapeHTML(lyraLocalState)}</span><div>翻訳API料金なし。初回のみ翻訳モデルのダウンロードが必要です（容量が大きい場合があります）。文章は翻訳サービスへ送信しません。iPhoneでは未対応・動作不安定な場合があります。</div></div>`}
+function lyraChangeTranslateLang(lang){if(!LYRA_TRANSLATION_LANGS[lang])return;lyraTranslateLang=lang;lyraSaveTranslatePrefs();lyraTranslationFailures.clear();lyraPaint();lyraRefreshRoom();}
+function lyraToggleAutoTranslate(enabled){lyraTranslateAuto=Boolean(enabled);lyraSaveTranslatePrefs();if(lyraTranslateAuto){const source=lyraTranslateLang==='JA'?'EN':'JA';if(!lyraLocalReady.has(source+'-'+lyraTranslateLang)){lyraLocalStatus('自動翻訳はモデルを準備した後に開始します');}else lyraTranslateRecent();}}
+function lyraLocalGetWorker(){
+ if(lyraLocalWorker)return lyraLocalWorker;
+ if(!window.Worker)throw Error('このブラウザは翻訳モデル用のWorkerに対応していません');
+ const worker=new Worker('./lyra-local-translator.js?v=1',{type:'module'});
+ worker.onmessage=(event)=>{
+  const data=event.data||{};
+  if(data.type==='progress'){lyraLocalStatus(data.message||'モデルを読み込み中…');return;}
+  const req=lyraLocalRequests.get(data.id);if(!req)return;
+  lyraLocalRequests.delete(data.id);
+  if(data.type==='error')req.reject(Error(data.error||'端末内モデルを起動できませんでした'));
+  else req.resolve(data);
+ };
+ worker.onerror=(event)=>{const reason='端末内翻訳の起動に失敗しました（ネット接続・Safariのメモリ容量を確認してください）';lyraLocalStatus(reason);for(const req of lyraLocalRequests.values())req.reject(Error(reason));lyraLocalRequests.clear();worker.terminate();lyraLocalWorker=null};
+ lyraLocalWorker=worker;return worker;
+}
+function lyraLocalRequest(action,source,target,text=''){
+ return new Promise((resolve,reject)=>{
+  try{const worker=lyraLocalGetWorker(),id=++lyraLocalSeq;
+   lyraLocalRequests.set(id,{resolve,reject});worker.postMessage({id,action,source,target,text});
+  }catch(e){reject(e)}
+ });
+}
+async function lyraPrepareLocalModel(){
+ const source=lyraTranslateLang==='JA'?'EN':'JA',target=lyraTranslateLang;
+ lyraLocalStatus('最初のダウンロード中です。Wi-Fi推奨。画面を開いたままお待ちください…');
+ try{await lyraLocalRequest('prepare',source,target);lyraLocalReady.add(source+'-'+target);lyraLocalStatus('✓ '+LYRA_TRANSLATION_LANGS[source]+' → '+LYRA_TRANSLATION_LANGS[target]+' 翻訳モデルが準備できました');lyraTranslateRecent();}
+ catch(e){lyraLocalStatus('モデルを使用できませんでした：'+(e.message||'読み込み失敗')+'。端末またはモデルの対応状況を確認してください。')}
+}
+function lyraTranslatedFragment(messageId){
+ const key=lyraTranslationId(messageId),trans=lyraTranslationCache.get(key),err=lyraTranslationFailures.get(key);
+ return (trans?`<div class="lyra-translated-text"><span class="lyra-translated-label">${escapeHTML(LYRA_TRANSLATION_LANGS[lyraTranslateLang])}訳 · ${trans.source==='phrase'?'登録済み定型文':'端末内モデル（β）'}</span>${escapeHTML(trans.text)}</div>`:'')+(err?`<div class="lyra-local-err">${escapeHTML(err)}</div>`:'');
+}
+async function lyraTranslateMessage(messageId,auto=false){
+ if(!lyraUser)return;
+ const msg=lyraRoomMessages.find(m=>m.id===messageId);if(!msg)return;
+ const src=lyraGuessLanguage(msg.body),target=lyraTranslateLang,peerId=lyraActivePeer;
+ const key=lyraTranslationId(messageId);
+ if(lyraTranslationCache.has(key)||lyraTranslationPending.has(key)|| (auto&&lyraTranslationFailures.has(key)))return;
+ if(src===target){if(!auto){lyraTranslationFailures.set(key,'すでに'+LYRA_TRANSLATION_LANGS[target]+'の文章です');lyraRenderTranslations();}return;}
+ if(!src){if(!auto){lyraTranslationFailures.set(key,'言語を判定できませんでした');lyraRenderTranslations();}return;}
+ if(auto&&!lyraLocalReady.has(src+'-'+target))return;
+ lyraTranslationPending.add(key);lyraRenderTranslations();
+ try{
+  let translated=lyraLocalPhrase(msg.body,target),source='phrase';
+  if(!translated){source='model';lyraLocalStatus('端末内で'+LYRA_TRANSLATION_LANGS[src]+' → '+LYRA_TRANSLATION_LANGS[target]+'に翻訳中…');const result=await lyraLocalRequest('translate',src,target,msg.body);translated=result.text;lyraLocalReady.add(src+'-'+target);}
+  if(!translated || !String(translated).trim())throw Error('空の翻訳が返りました');
+  lyraTranslationCache.set(key,{text:String(translated).trim(),source});lyraTranslationFailures.delete(key);
+  if(source==='model')lyraLocalStatus('✓ 端末内モデルで翻訳しました（外部翻訳API不使用）');
+ }catch(e){
+  const err='翻訳できません：'+(e.message||'モデルのダウンロードに失敗しました');
+  lyraTranslationFailures.set(key,err);
+  if(!auto)lyraLocalStatus(err);
+ }finally{lyraTranslationPending.delete(key);if(peerId===lyraActivePeer)lyraRenderTranslations();}
+}
+function lyraRenderTranslations(){const root=document.getElementById('messageScroller');if(root)root.innerHTML=lyraBubbleList()}
+function lyraTranslateRecent(){
+ if(!lyraTranslateAuto||!lyraUser||!lyraActivePeer)return;
+ const source=lyraTranslateLang==='JA'?'EN':'JA';if(!lyraLocalReady.has(source+'-'+lyraTranslateLang))return;
+ const pending=lyraRoomMessages.filter(m=>m.sender_id!==lyraUser.id&&lyraGuessLanguage(m.body)===source&&!lyraTranslationCache.has(lyraTranslationId(m.id))&&!lyraTranslationPending.has(lyraTranslationId(m.id))&&!lyraTranslationFailures.has(lyraTranslationId(m.id)));
+ pending.slice(-2).forEach(m=>lyraTranslateMessage(m.id,true));
+}
+
 function lyraRoom(){const c=lyraAccepted().find(c=>c.other_user_id===lyraActivePeer);if(!c)return '<p class="live-empty">この友だちは見つかりません。</p>';
  return `<div class="room"><header class="room-head"><button class="back" aria-label="戻る" onclick="go('talk')">${icon('back')}</button>${lyraAvatar(c.other_display_name,43,c.other_user_id)}<span class="room-title">${escapeHTML(c.other_display_name)}<small>LYRA チャット · 暗号化されたHTTPS通信</small></span></header>
- <div class="messages" id="messageScroller">${lyraBubbleList()}</div>
+ ${lyraTranslationTools()}<div class="messages" id="messageScroller">${lyraBubbleList()}</div>
  <form class="chat-composer" onsubmit="lyraSendMessage(event)"><button type="button" class="compose-icon" onclick="lyraStatus('写真送信は準備中です')" aria-label="写真は準備中">${icon('plus')}</button><textarea id="messageInput" rows="1" maxlength="4000" placeholder="メッセージを入力" aria-label="メッセージ"></textarea><button id="lyraSendButton" class="send-btn" type="submit" aria-label="送信">${icon('send','small')}</button></form></div>`;
 }
-function lyraBubbleList(){return lyraRoomMessages.length?lyraRoomMessages.map(m=>`<div class="msg ${m.sender_id===lyraUser.id?'mine':''}">${m.sender_id!==lyraUser.id?lyraAvatar(lyraAccepted().find(c=>c.other_user_id===lyraActivePeer)?.other_display_name,32,lyraActivePeer):''}<div class="msg-bubble">${escapeHTML(m.body)}</div><span class="msg-time">${lyraFmtTime(m.created_at)}</span></div>`).join(''):'<div class="live-chat-empty">チャットを始めましょう。<br>送ったメッセージは相手の端末にも届きます。</div>'}
+function lyraBubbleList(){return lyraRoomMessages.length?lyraRoomMessages.map(m=>{
+ const key=lyraTranslationId(m.id),busy=lyraTranslationPending.has(key),ready=lyraTranslationCache.has(key),isMine=m.sender_id===lyraUser.id;
+ return `<div class="msg ${isMine?'mine':''}">${!isMine?lyraAvatar(lyraAccepted().find(c=>c.other_user_id===lyraActivePeer)?.other_display_name,32,lyraActivePeer):''}<div class="lyra-msg-holder"><div class="msg-bubble">${escapeHTML(m.body)}${lyraTranslatedFragment(m.id)}</div><button class="lyra-translate-action" type="button" ${busy?'disabled':''} onclick="lyraTranslateMessage('${escapeHTML(m.id)}')">${busy?'翻訳中…':ready?'✓ 翻訳済み':'🌐 翻訳'}</button></div><span class="msg-time">${lyraFmtTime(m.created_at)}</span></div>`;
+ }).join(''):'<div class="live-chat-empty">チャットを始めましょう。<br>送ったメッセージは相手の端末にも届きます。</div>'}
 async function lyraRefreshRoom(){const id=lyraActivePeer,user=lyraUser;if(!id||!user||!lyraClient)return;let query=`and(sender_id.eq.${user.id},recipient_id.eq.${id}),and(sender_id.eq.${id},recipient_id.eq.${user.id})`;
- try{let {data,error}=await lyraClient.from('lyra_messages').select('id,sender_id,recipient_id,body,created_at').or(query).order('created_at',{ascending:false}).limit(200);if(error)throw error;if(id!==lyraActivePeer)return;lyraRoomMessages=(data||[]).reverse();let scroller=$('#messageScroller');if(scroller){scroller.innerHTML=lyraBubbleList();scrollBottom()}}
+ try{let {data,error}=await lyraClient.from('lyra_messages').select('id,sender_id,recipient_id,body,created_at').or(query).order('created_at',{ascending:false}).limit(200);if(error)throw error;if(id!==lyraActivePeer)return;lyraRoomMessages=(data||[]).reverse();let scroller=$('#messageScroller');if(scroller){scroller.innerHTML=lyraBubbleList();scrollBottom()}lyraTranslateRecent()}
  catch(e){lyraStatus('メッセージ取得エラー: '+e.message)}}
 async function lyraSendMessage(event){event.preventDefault();if(lyraBusy||!lyraUser||!lyraActivePeer)return;const box=$('#messageInput');let message=box?.value.trim();if(!message)return;if(message.length>4000){lyraStatus('4000文字以内で送信してください');return}
  lyraBusy=true;const send=$('#lyraSendButton');if(send)send.disabled=true;
