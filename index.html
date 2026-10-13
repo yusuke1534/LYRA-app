@@ -28,6 +28,19 @@
 .modal-layer{position:absolute;inset:0;background:#0d254467;z-index:20;display:flex;align-items:flex-end;justify-content:center;animation:fade .2s}.sheet{background:#fff;border-radius:27px 27px 0 0;padding:23px 25px 34px;width:100%;max-height:85%;overflow-y:auto;box-shadow:0 -10px 30px #0e294329;animation:rise .2s}.sheet-title{font-size:19px;font-weight:800;margin:0 0 18px}.sheet-close{float:right;background:#eef6fe;border-radius:50%;height:34px;width:34px;display:grid;place-items:center;margin-top:-3px}.sheet p{font-size:13px;color:#7285a0;line-height:1.75}.sheet .primary-btn{width:100%;margin:17px 0 0}.sheet-choice{background:#f4f9ff;padding:13px;border-radius:14px;margin-top:8px;font-size:13px}.toast{position:absolute;z-index:30;bottom:102px;left:22px;right:22px;background:#1d3d61ed;color:white;border-radius:14px;font-size:13px;text-align:center;padding:12px 15px;box-shadow:0 8px 20px #28507170}.shareline{display:flex;gap:6px;margin-top:10px}.shareline .field{min-width:0}.shareline button{white-space:nowrap;padding:0 15px;border-radius:14px;background:#e9f4ff;color:#0981ef;font-size:13px}.setup-banner{padding:16px;border-radius:17px;background:#eaf9ff;color:#396f9f;font-size:12px;line-height:1.7;margin-top:16px}
 @keyframes fade{from{opacity:0}to{opacity:1}}@keyframes rise{from{transform:translateY(25px)}to{transform:translateY(0)}}
 @media(max-width:1160px) and (min-width:701px){.landing{grid-template-columns:minmax(210px,320px) minmax(375px,470px);justify-content:center;gap:25px}.side-right{display:none}.brand-name{font-size:45px}.brand-symbol{width:205px}.brand-description{margin-left:20px}}@media(max-width:700px){body{background:#fff}.landing{display:block;padding:0;min-height:100dvh}.side-left,.side-right,.ambient{display:none}.phone{height:100dvh;min-height:0;max-height:none;width:100%;outline:none;border:0;border-radius:0;box-shadow:none}.phone:before{display:none}.phone-status{flex-basis:calc(39px + env(safe-area-inset-top));height:calc(39px + env(safe-area-inset-top));padding-top:env(safe-area-inset-top)}.island{top:calc(9px + env(safe-area-inset-top))}.phone-head{flex-basis:72px;height:72px;padding-left:21px;padding-right:18px}.head-logo{width:59px;height:53px}.head-wordmark{font-size:27px}.round-btn,.head-avatar,.head-avatar img{width:39px;height:39px}.home-view{padding:0 17px 15px}.hero{height:157px;padding:18px 21px;margin-bottom:18px}.hero-title{font-size:20px}.favorites{gap:9px}.fav-image{height:65px;width:65px}.favorite{min-width:65px}.chat-item{min-height:77px}.list-avatar{width:60px;height:60px}.chat-heading{margin-top:19px}.bottom-nav{flex-basis:calc(75px + env(safe-area-inset-bottom));height:calc(75px + env(safe-area-inset-bottom));padding-bottom:calc(8px + env(safe-area-inset-bottom));}.home-indicator{bottom:calc(3px + env(safe-area-inset-bottom)/2)}.phone .room-head{padding:8px 15px 12px}}@media(max-width:375px){.head-wordmark{font-size:23px}.phone-head{gap:8px}.round-btn,.head-avatar,.head-avatar img{width:35px;height:35px}.home-view{padding-left:13px;padding-right:13px}.hero-title{font-size:19px}.chat-item{gap:9px}.chat-name{font-size:14px}.chat-preview{font-size:12px}.bottom-nav{padding-left:2px;padding-right:2px}.nav-item{font-size:10px}}
+/* LYRA connection UI. Preserves original blue/cyan theme. */
+.live-auth{padding:30px 24px 40px;text-align:center;max-width:430px;margin:auto;min-height:100%;display:flex;flex-direction:column;align-items:stretch;justify-content:center}
+.live-auth h2{font-size:24px;letter-spacing:.03em;margin:15px 0 5px;color:#102e61}.live-auth p{font-size:13px;line-height:1.85;color:#7789a4;text-align:left}.live-auth form{text-align:left;margin-top:10px}.live-auth .field{width:100%;margin:5px 0 14px;display:block}.live-auth .primary-btn{width:100%;margin-top:12px}
+.live-cloud{width:90px;height:90px;display:grid;place-items:center;background:linear-gradient(145deg,#f7fcff,#def7ff);border-radius:28px;margin:0 auto;color:#087ff7;box-shadow:0 10px 25px #9ad9f34d}
+.live-cloud img{width:85px;height:85px;object-fit:contain}.live-auth-switch{display:flex;gap:4px;background:#eff6ff;border-radius:15px;padding:4px;margin:13px 0 5px}.live-auth-switch button{flex:1;padding:10px;background:transparent;border-radius:12px;color:#60799c;font-weight:600}.live-auth-switch button.on{background:white;color:#087cf9;box-shadow:0 2px 11px #8bcaed45}
+.live-note{font-size:11px!important;color:#788ca6!important;line-height:1.8!important;margin-top:21px!important}.live-key{min-height:88px;font-size:12px;word-break:break-all}
+.live-avatar{display:inline-grid;place-items:center;width:var(--sz);height:var(--sz);min-width:var(--sz);min-height:var(--sz);border-radius:50%;color:white;font-weight:750;font-size:calc(var(--sz) * .40);background:linear-gradient(145deg,#54dce9 3%,#0f90ff 53%,#0858d8 100%);box-shadow:inset 0 2px 2px #ffffff75,0 4px 11px #6cbfe935;flex-shrink:0}
+.fav-image .live-avatar{width:100%;height:100%;border-radius:50%;display:grid;place-items:center}
+.live-request-section{margin:22px 0 12px}.live-count{display:inline-grid;place-items:center;background:#1395ff;color:#fff;border-radius:20px;padding:2px 8px;font-size:11px;vertical-align:middle}.live-request{display:flex;gap:8px;align-items:center;background:linear-gradient(130deg,#f3faff,#fff);border:1px solid #e2f1ff;border-radius:19px;padding:10px;margin:9px 0}.live-request-name{font-size:12px;font-weight:750;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.live-request-name small{display:block;font-weight:400;color:#748eac;font-size:10px;margin-top:5px}.live-request button{background:#168cf4;color:white;padding:7px 9px;border-radius:11px;font-size:11px;flex-shrink:0}.live-request .decline{background:#eaf3fd;color:#6d829e}
+.live-empty{padding:42px 12px;text-align:center;color:#8799ae;line-height:1.9;font-size:13px}.live-empty h3{color:#153364}.live-pending{background:#ebf7ff;color:#447ba8;padding:11px;border-radius:15px;margin:13px 0;font-size:12px}.live-chat-empty{text-align:center;color:#8296b2;padding:37px 14px;font-size:13px;line-height:1.7}
+.live-code-card{background:linear-gradient(130deg,#ebfaff,#ecf2ff);border-radius:24px;padding:21px 18px;margin-bottom:17px;text-align:center;border:1px solid white;box-shadow:0 7px 20px #9ad5ff3b}.live-code-card span{display:block;color:#708baa;font-size:12px}.live-code-card strong{display:block;font-size:25px;letter-spacing:.13em;margin:9px 0;color:#086af2;user-select:all}.live-code-card p{font-size:12px;line-height:1.6;color:#657e9a}.live-code-card .primary-btn{margin-top:10px}.live-found{display:flex;align-items:center;gap:12px;margin:15px 0;background:#effaff;padding:12px;border-radius:17px}.live-own-code{margin-top:26px;font-size:12px;color:#6e87a6;line-height:2}.live-own-code strong{color:#1165bd;letter-spacing:.07em}.live-own-code button{padding:7px;color:#087af0;background:#eef8ff;border-radius:8px;margin-left:7px}
+.live-auth .field-label{margin-top:6px;display:block}
+@media(max-width:700px){.live-auth{min-height:calc(100% - 5px)}.live-code-card strong{font-size:21px}.live-request{gap:5px}.live-request button{padding:7px}}
 </style>
 </head>
 <body>
@@ -123,6 +136,204 @@ document.querySelectorAll('[data-ico]').forEach(e=>e.innerHTML=icon(e.dataset.ic
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();if(e.key==='Enter'&&e.target.id==='messageInput'&&!e.shiftKey){e.preventDefault();e.target.closest('form').requestSubmit()}});
 
 render();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+/* LYRA online mode (Supabase auth + reciprocal friend approval + Realtime text chat).
+   Do not put service_role or sb_secret_ credentials in public HTML. */
+const LYRA_PROJECT = {
+  url: '',              // 例: https://abcdefghijk.supabase.co
+  publishableKey: ''     // Supabase Project Settings > API Keys > publishable / anon
+};
+let lyraClient=null, lyraUser=null, lyraProfile=null, lyraFriends=[], lyraConnections=[],
+    lyraLatest={}, lyraRoomMessages=[], lyraActivePeer=null, lyraChannel=[], lyraAuthMode='signin',
+    lyraBusy=false, lyraPoll=null, lyraRefreshing=false, lyraCurrentKey='', lyraLastRefresh=0, lyraSessionLoading=null;
+const lyraFmtTime = iso => iso ? new Date(iso).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}) : '';
+const lyraInitial = str => [...(str || '友')][0];
+const lyraAvatar = (name,size=47) => `<span class="live-avatar" style="--sz:${size}px" aria-label="${escapeHTML(name)}">${escapeHTML(lyraInitial(name))}</span>`;
+const lyraStatus = msg => toast(msg);
+function lyraCurrentConfig(){
+  if(LYRA_PROJECT.url && LYRA_PROJECT.publishableKey) return {url:LYRA_PROJECT.url.trim(),key:LYRA_PROJECT.publishableKey.trim()};
+  try {return JSON.parse(localStorage.getItem('lyra_supabase_settings')||'null')} catch {return null}
+}
+function lyraConfigure(clientConfig){
+  const {url,key}=clientConfig||{};
+  if(!/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(url||'')) throw Error('Supabase の Project URL（https://〜.supabase.co）を入力してください。');
+  if(!key || key.startsWith('sb_secret_') || !(key.startsWith('sb_publishable_') || key.startsWith('eyJ'))) throw Error('公開可能な publishable key または anon key を入力してください。secret key は使用できません。');
+  if(!window.supabase?.createClient) throw Error('Supabase の通信ライブラリを読み込めません。ネット接続を確認して再読込してください。');
+  if(lyraClient && lyraCurrentKey===url+'|'+key) return;
+  lyraClient=window.supabase.createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true},realtime:{params:{eventsPerSecond:5}}});
+  lyraCurrentKey=url+'|'+key;
+  lyraClient.auth.onAuthStateChange((event,session)=>{
+    // Deadlock avoidance: do not make async Supabase calls synchronously within auth callback.
+    if(event==='SIGNED_IN' || event==='SIGNED_OUT' || event==='USER_UPDATED')
+      setTimeout(()=>lyraApplySession(session?.user||null),0);
+  });
+}
+function lyraSetupView(){
+ return `<div class="live-auth"><div class="live-cloud">${icon('settings','big')}</div><h2>LYRA 接続設定</h2>
+ <p>実際の友だち登録とチャットには、Supabaseプロジェクトの接続先が必要です。設定はこの端末に保存されます。</p>
+ <form onsubmit="lyraSaveProject(event)"><label class="field-label">Project URL</label><input class="field" id="lyraUrl" inputmode="url" required placeholder="https://xxxxxxxx.supabase.co">
+ <label class="field-label">Publishable key / anon key</label><textarea class="field live-key" id="lyraKey" required placeholder="sb_publishable_... または eyJ..."></textarea>
+ <button class="primary-btn" type="submit">この端末で接続する</button></form>
+ <p class="live-note">※公開する際は、index.htmlの LYRA_PROJECT に同じ値を設定してください。そうすると訪問者ごとに設定する必要がありません。service_role / secret キーは入力しないでください。</p></div>`;
+}
+function lyraAuthView(){
+ const signup=lyraAuthMode==='signup';
+ return `<div class="live-auth"><div class="live-cloud"><img src="${pic('lyra-logo')}" alt="LYRA"/></div>
+ <h2>${signup?'LYRAに新規登録':'LYRAにログイン'}</h2><p>友だちコードでつながり、離れたスマホ同士でメッセージを送れます。</p>
+ <div class="live-auth-switch"><button class="${!signup?'on':''}" onclick="lyraSetAuth('signin')">ログイン</button><button class="${signup?'on':''}" onclick="lyraSetAuth('signup')">新規登録</button></div>
+ <form onsubmit="lyraSubmitAuth(event)">${signup?'<label class="field-label">表示名</label><input class="field" id="liveName" maxlength="40" required autocomplete="nickname" placeholder="例：さくら">':''}
+ <label class="field-label">メールアドレス</label><input class="field" type="email" id="liveEmail" required autocomplete="email" placeholder="mail@example.com">
+ <label class="field-label">パスワード（8文字以上）</label><input class="field" type="password" id="livePassword" minlength="8" required autocomplete="${signup?'new-password':'current-password'}" placeholder="8文字以上">
+ <button class="primary-btn" id="liveAuthSubmit" type="submit" ${lyraBusy?'disabled':''}>${signup?'アカウントを作成':'ログインする'}</button></form>
+ <p class="live-note">${signup?'確認メールが届いた場合は、記載されたリンクを開いて登録を完了してください。':'自分のアカウントでログインすると友だちとチャットできます。'}<br>本アプリの写真はデザイン素材です。連絡先は実際に承認した友だちだけ表示します。</p></div>`;
+}
+function lyraSetAuth(mode){lyraAuthMode=mode;lyraPaint()}
+async function lyraSaveProject(event){event.preventDefault();let config={url:$('#lyraUrl').value.trim(),key:$('#lyraKey').value.trim()};try{lyraConfigure(config);localStorage.setItem('lyra_supabase_settings',JSON.stringify(config));$('#screenContent').innerHTML='<div class="live-auth"><h2>接続しています…</h2></div>';let {data:{session},error}=await lyraClient.auth.getSession();if(error) throw error;await lyraApplySession(session?.user||null)}catch(e){lyraStatus('接続設定: '+e.message);lyraPaint()}}
+async function lyraSubmitAuth(event){event.preventDefault();if(!lyraClient)return;let email=$('#liveEmail').value.trim(),password=$('#livePassword').value,name=$('#liveName')?.value.trim();lyraBusy=true;lyraPaint();try{
+ let result=lyraAuthMode==='signup'
+   ? await lyraClient.auth.signUp({email,password,options:{data:{display_name:name},emailRedirectTo:location.origin+location.pathname}})
+   : await lyraClient.auth.signInWithPassword({email,password});
+ if(result.error)throw result.error;
+ if(lyraAuthMode==='signup' && !result.data.session) {lyraAuthMode='signin';lyraStatus('確認メールを送信しました。メール内のリンクを開いてください。');}
+ else if(result.data.user){await lyraApplySession(result.data.user);lyraStatus('ログインしました');}
+ }catch(e){lyraStatus('認証エラー: '+e.message)}finally{lyraBusy=false;lyraPaint()}
+}
+function lyraUnsubscribe(){for(const c of lyraChannel){lyraClient?.removeChannel(c)}lyraChannel=[];if(lyraPoll)clearInterval(lyraPoll);lyraPoll=null;}
+async function lyraApplySession(user){
+ const previous=lyraUser?.id||null;
+ if(!user){lyraUnsubscribe();lyraSessionLoading=null;lyraUser=null;lyraProfile=null;lyraFriends=[];lyraConnections=[];lyraRoomMessages=[];lyraActivePeer=null;view='home';lyraPaint();return}
+ if(previous===user.id && (lyraProfile || lyraSessionLoading===user.id))return;
+ lyraUnsubscribe();lyraSessionLoading=user.id;lyraUser=user;lyraProfile=null;lyraActivePeer=null;view='home';lyraPaintLoading();
+ try{
+  const {data:profile,error}=await lyraClient.from('lyra_profiles').select('id,display_name,friend_code').eq('id',user.id).single();
+  if(error)throw error;
+  if(lyraUser?.id!==user.id)return;
+  lyraProfile=profile;await lyraLoadConnections(false);lyraSubscribe();lyraPaint();
+ }catch(e){lyraProfile=null;lyraStatus('データベースの準備を確認してください: '+e.message);lyraPaint()}
+ finally{if(lyraSessionLoading===user.id)lyraSessionLoading=null}
+}
+function lyraPaintLoading(){$('#phoneHeader').classList.add('hide');$('#bottomNav').classList.add('hide');$('#screenContent').innerHTML='<div class="live-auth"><h2>LYRAに接続中…</h2><p>プロフィールと友だちを読み込んでいます。</p></div>'}
+function lyraAvatarHead(){return `<button class="round-btn" aria-label="マイページ" onclick="go('profile')">${icon('user')}</button>`}
+function lyraPaint(){
+ const head=$('#phoneHeader'), nav=$('#bottomNav'),screen=$('#screenContent');
+ if(!lyraClient || !lyraUser || !lyraProfile){
+  head.classList.add('hide');nav.classList.add('hide');
+  screen.innerHTML=!lyraClient?lyraSetupView():lyraUser&&!lyraProfile?`<div class="live-auth"><h2>接続の準備が必要です</h2><p>Supabase SQL Editorで付属SQLを実行し、リロードしてください。</p><button class="primary-btn" onclick="lyraRetry()">もう一度読み込む</button><button class="option-line" onclick="lyraLogout()">ログアウト</button></div>`:lyraAuthView();
+  return;
+ }
+ if(view==='room'){head.classList.add('hide');nav.classList.add('hide')}
+ else {head.classList.remove('hide');head.innerHTML=`<img class="head-logo" src="${pic('lyra-logo')}" alt="LYRA"><span class="head-wordmark">LYRA</span><span class="head-spacer"></span><button class="round-btn" aria-label="検索" onclick="lyraSearch()">${icon('search')}</button>${lyraAvatarHead()}<button class="round-btn" aria-label="設定" onclick="lyraSettings()">${icon('settings')}</button>`;
+ nav.classList.remove('hide');nav.innerHTML=menus.map(([id,ico,label])=>`<button class="nav-item ${view===id?'active':''}" onclick="go('${id}')">${icon(ico)}${label}${id==='talk'&&lyraConnections.some(c=>c.connection_status==='pending'&&c.direction==='incoming')?'<i></i>':''}</button>`).join('')}
+ screen.innerHTML=({home:lyraHome,talk:lyraTalk,calls:lyraCalls,ai:lyraAI,profile:lyraProfileView,room:lyraRoom})[view]?.()||lyraHome();
+ if(view==='room')scrollBottom();
+}
+async function lyraRetry(){if(!lyraClient||!lyraUser)return;const u=lyraUser;lyraProfile=null;lyraUser=null;await lyraApplySession(u)}
+function lyraGo(tab){if(!lyraUser || !lyraProfile)return;view=tab;lyraActivePeer=null;filter='';lyraPaint()}
+const lyraAccepted=()=>lyraConnections.filter(c=>c.connection_status==='accepted');
+function lyraOrderedFriends(){return lyraAccepted().sort((a,b)=>((lyraLatest[b.other_user_id]?.created_at||b.connected_at).localeCompare(lyraLatest[a.other_user_id]?.created_at||a.connected_at)))}
+function lyraChatRow(c){const last=lyraLatest[c.other_user_id],t=last?.created_at||c.connected_at;
+ return `<button class="chat-item" onclick="lyraOpenRoom('${c.other_user_id}')">${lyraAvatar(c.other_display_name,52)}<div class="chat-info"><div class="chat-top"><div class="chat-name">${escapeHTML(c.other_display_name)}</div><time class="chat-time">${lyraFmtTime(t)}</time></div><div class="chat-preview">${escapeHTML(last?.body||'タップしてメッセージを送る')}</div></div></button>`;
+}
+function lyraIncoming(){const pending=lyraConnections.filter(c=>c.connection_status==='pending'&&c.direction==='incoming');if(!pending.length)return '';
+ return `<section class="live-request-section"><div class="section-head"><h2>友だち申請 <span class="live-count">${pending.length}</span></h2></div>${pending.map(c=>`<div class="live-request">${lyraAvatar(c.other_display_name,43)}<div class="live-request-name">${escapeHTML(c.other_display_name)}<small>友だち申請が届きました</small></div><button onclick="lyraRespond('${c.connection_id}',true)">承認</button><button class="decline" onclick="lyraRespond('${c.connection_id}',false)">拒否</button></div>`).join('')}</section>`;
+}
+function lyraHome(){let fav=lyraOrderedFriends().slice(0,8);return `<div class="home-view"><button class="hero" style="width:100%;text-align:left" onclick="go('ai')"><div class="hero-text"><div class="hero-title">話すたび、<br>日常が少しやさしくなる。</div><div class="hero-detail">大切な人と、AIと、いつでもつながれる<br>あなただけの居場所。</div></div><span class="hero-go">${icon('chevron')}</span></button>
+ <div class="section-head"><h2>お気に入り</h2><button class="small-link" onclick="go('talk')">すべて見る ›</button></div><div class="favorites"><button class="favorite" onclick="lyraAddFriend()"><span class="fav-image fav-add">+</span><span class="fav-title">追加</span></button>${fav.map((c,i)=>`<button class="favorite" onclick="lyraOpenRoom('${c.other_user_id}')"><span class="fav-image ${i===0?'selected':''}">${lyraAvatar(c.other_display_name,64)}</span><span class="fav-title">${escapeHTML(c.other_display_name)}</span></button>`).join('')}</div>
+ ${lyraIncoming()}<div class="section-head chat-heading"><h2>最近のチャット</h2><button class="small-link" onclick="go('talk')">すべて ›</button></div><div class="chat-list">${lyraOrderedFriends().length?lyraOrderedFriends().map(lyraChatRow).join(''):'<div class="live-empty">まだ友だちがいません。<br>上の「追加」から友だちコードでつながりましょう。</div>'}</div></div>`}
+function lyraTalk(){const list=lyraOrderedFriends().filter(c=>!filter || c.other_display_name.toLowerCase().includes(filter.toLowerCase()));const outgoing=lyraConnections.filter(c=>c.connection_status==='pending'&&c.direction==='outgoing');
+ return `<div class="screen-pad"><div class="sub-header" style="padding-left:0;padding-right:0"><div class="sub-title">トーク</div><button class="lightbtn" onclick="lyraAddFriend()" aria-label="友だち追加">${icon('message-plus')}</button></div>
+ <label class="searchbar">${icon('search')}<input id="listSearch" type="search" placeholder="友だちの名前で検索" value="${escapeHTML(filter)}" oninput="lyraFilterTalk(this.value)"></label>
+ ${lyraIncoming()}${outgoing.length?`<div class="live-pending">申請中：${outgoing.map(c=>escapeHTML(c.other_display_name)).join('、')}</div>`:''}
+ <div class="section-head chat-heading"><h2>友だち (${lyraAccepted().length})</h2><button class="small-link" onclick="lyraAddFriend()">+ 追加</button></div>
+ <div id="filteredChats">${list.length?list.map(lyraChatRow).join(''):'<div class="live-empty">表示できる友だちがいません。</div>'}</div></div>`;
+}
+function lyraFilterTalk(value){filter=value;const el=$('#filteredChats');if(el){const list=lyraOrderedFriends().filter(c=>c.other_display_name.toLowerCase().includes(value.toLowerCase()));el.innerHTML=list.length?list.map(lyraChatRow).join(''):'<div class="live-empty">見つかりませんでした</div>'}}
+function lyraCalls(){return `<div class="screen-pad"><div class="sub-header" style="padding:0"><div class="sub-title">通話</div></div><div class="live-empty">${icon('phone','big')}<h3>音声・ビデオ通話は準備中です</h3>友だちとのリアルタイム文字チャットは利用できます。<br>通話には別途 WebRTC や通話サーバーが必要です。</div></div>`}
+function lyraAI(){return `<div class="screen-pad"><div class="sub-header" style="padding:0"><div class="sub-title">LYRA AI</div></div><div class="ai-welcome"><img src="${pic('ai')}" alt=""><div><b>AI相談パートナー</b><p>現在はAI接続前のデモです。実際のAIとの会話はまだ利用できません。</p></div></div><div class="live-empty">AIは今後接続予定です。<br>友だちとのチャットは「トーク」から利用できます。</div></div>`}
+function lyraProfileView(){return `<div class="screen-pad"><div class="sub-header" style="padding:0"><div class="sub-title">マイページ</div></div><div class="profile-top">${lyraAvatar(lyraProfile.display_name,75)}<div><b>${escapeHTML(lyraProfile.display_name)}</b><p>LYRA にログイン中</p></div></div>
+ <div class="live-code-card"><span>あなたの友だちコード</span><strong>${escapeHTML(lyraProfile.friend_code)}</strong><p>このコードを相手に伝え、友だち申請してもらえます。</p><button class="primary-btn" onclick="lyraCopyCode()">コードをコピー</button></div>
+ <button class="option-line" onclick="lyraEditProfile()">${icon('edit')}表示名を変更 ${icon('chevron','small')}</button>
+ <button class="option-line" onclick="lyraAddFriend()">${icon('message-plus')}友だちを追加 ${icon('chevron','small')}</button>
+ <button class="option-line" onclick="lyraInvite()">${icon('share')}アプリを共有 ${icon('chevron','small')}</button>
+ <button class="option-line" onclick="lyraSettings()">${icon('settings')}設定・ログアウト ${icon('chevron','small')}</button>
+ <p class="profile-note">友だちの承認とメッセージの保存はSupabaseで管理しています。</p></div>`}
+async function lyraCopyCode(){const code=lyraProfile?.friend_code;if(!code)return;try{await navigator.clipboard.writeText(code);lyraStatus('友だちコードをコピーしました')}catch{overlay(`<h3 class="sheet-title">あなたの友だちコード</h3><input class="field" readonly value="${escapeHTML(code)}" onclick="this.select()"><p>長押ししてコピーしてください。</p><button class="primary-btn" onclick="closeModal()">閉じる</button>`)}}
+function lyraAddFriend(){if(!lyraProfile)return;
+ overlay(`<button class="sheet-close" onclick="closeModal()">${icon('close','small')}</button><h3 class="sheet-title">友だちを追加</h3><p>相手の12桁の友だちコードを入力すると、友だち申請を送れます。相手の承認後にチャットが利用できます。</p>
+ <label class="field-label">友だちコード</label><input class="field" id="lyraFriendCode" maxlength="20" autocapitalize="characters" placeholder="例：A1B2C3D4E5F6">
+ <button class="primary-btn" onclick="lyraFindFriend()">コードで検索</button><div id="lyraFriendResult"></div>
+ <div class="live-own-code">あなたのコード：<strong>${escapeHTML(lyraProfile.friend_code)}</strong><button onclick="lyraCopyCode()">コピー</button></div>`)
+}
+async function lyraFindFriend(){let code=$('#lyraFriendCode')?.value.trim();if(!code)return lyraStatus('友だちコードを入力してください');let target=$('#lyraFriendResult');target.textContent='検索しています…';
+ try{let {data,error}=await lyraClient.rpc('lyra_find_friend',{p_code:code});if(error)throw error;const person=data?.[0];if(!person){target.textContent='見つかりませんでした。コードを確認してください。';return}
+ target.innerHTML=`<div class="live-found">${lyraAvatar(person.user_name,43)}<b>${escapeHTML(person.user_name)}</b></div><button class="primary-btn" onclick="lyraSendRequest('${escapeHTML(person.user_code)}')">この人に友だち申請する</button>`;
+ }catch(e){target.textContent='検索エラー: '+e.message}}
+async function lyraSendRequest(code){try{let {data,error}=await lyraClient.rpc('lyra_send_friend_request',{p_code:code});if(error)throw error;closeModal();await lyraLoadConnections();lyraStatus(({sent:'友だち申請を送信しました',already_friends:'すでに友だちです',already_pending:'すでに申請中です',incoming_request:'相手から申請が届いています。「トーク」で承認してください'})[data]||'申請の状態を更新しました')}
+ catch(e){lyraStatus('申請エラー: '+e.message)}}
+async function lyraRespond(id,accept){try{const {error}=await lyraClient.rpc('lyra_respond_friend_request',{p_connection_id:id,p_accept:accept});if(error)throw error;await lyraLoadConnections();lyraStatus(accept?'友だちになりました！':'申請を拒否しました')}
+ catch(e){lyraStatus('操作できませんでした: '+e.message)}}
+async function lyraOpenRoom(id){if(!lyraAccepted().some(c=>c.other_user_id===id))return lyraStatus('承認済みの友だちのみチャットできます');
+ lyraActivePeer=id;view='room';lyraRoomMessages=[];lyraPaint();await lyraRefreshRoom()}
+function lyraRoom(){const c=lyraAccepted().find(c=>c.other_user_id===lyraActivePeer);if(!c)return '<p class="live-empty">この友だちは見つかりません。</p>';
+ return `<div class="room"><header class="room-head"><button class="back" aria-label="戻る" onclick="go('talk')">${icon('back')}</button>${lyraAvatar(c.other_display_name,43)}<span class="room-title">${escapeHTML(c.other_display_name)}<small>LYRA チャット · 暗号化されたHTTPS通信</small></span></header>
+ <div class="messages" id="messageScroller">${lyraBubbleList()}</div>
+ <form class="chat-composer" onsubmit="lyraSendMessage(event)"><button type="button" class="compose-icon" onclick="lyraStatus('写真送信は準備中です')" aria-label="写真は準備中">${icon('plus')}</button><textarea id="messageInput" rows="1" maxlength="4000" placeholder="メッセージを入力" aria-label="メッセージ"></textarea><button id="lyraSendButton" class="send-btn" type="submit" aria-label="送信">${icon('send','small')}</button></form></div>`;
+}
+function lyraBubbleList(){return lyraRoomMessages.length?lyraRoomMessages.map(m=>`<div class="msg ${m.sender_id===lyraUser.id?'mine':''}">${m.sender_id!==lyraUser.id?lyraAvatar(lyraAccepted().find(c=>c.other_user_id===lyraActivePeer)?.other_display_name,32):''}<div class="msg-bubble">${escapeHTML(m.body)}</div><span class="msg-time">${lyraFmtTime(m.created_at)}</span></div>`).join(''):'<div class="live-chat-empty">チャットを始めましょう。<br>送ったメッセージは相手の端末にも届きます。</div>'}
+async function lyraRefreshRoom(){const id=lyraActivePeer,user=lyraUser;if(!id||!user||!lyraClient)return;let query=`and(sender_id.eq.${user.id},recipient_id.eq.${id}),and(sender_id.eq.${id},recipient_id.eq.${user.id})`;
+ try{let {data,error}=await lyraClient.from('lyra_messages').select('id,sender_id,recipient_id,body,created_at').or(query).order('created_at',{ascending:false}).limit(200);if(error)throw error;if(id!==lyraActivePeer)return;lyraRoomMessages=(data||[]).reverse();let scroller=$('#messageScroller');if(scroller){scroller.innerHTML=lyraBubbleList();scrollBottom()}}
+ catch(e){lyraStatus('メッセージ取得エラー: '+e.message)}}
+async function lyraSendMessage(event){event.preventDefault();if(lyraBusy||!lyraUser||!lyraActivePeer)return;const box=$('#messageInput');let message=box?.value.trim();if(!message)return;if(message.length>4000){lyraStatus('4000文字以内で送信してください');return}
+ lyraBusy=true;const send=$('#lyraSendButton');if(send)send.disabled=true;
+ try{let {error}=await lyraClient.from('lyra_messages').insert({recipient_id:lyraActivePeer,body:message});if(error)throw error;box.value='';await lyraRefreshRoom();await lyraLoadConnections(false)}
+ catch(e){lyraStatus('送信できませんでした: '+e.message)}finally{lyraBusy=false;if(send)send.disabled=false}}
+async function lyraLoadConnections(paint=true){if(!lyraClient||!lyraUser||lyraRefreshing)return;lyraRefreshing=true;const current=lyraUser.id;
+ try{
+  const {data:rows,error}=await lyraClient.rpc('lyra_list_connections');if(error)throw error;
+  if(lyraUser?.id!==current)return;
+  lyraConnections=rows||[];
+  const {data:recent,error:err}=await lyraClient.from('lyra_messages').select('sender_id,recipient_id,body,created_at').or(`sender_id.eq.${current},recipient_id.eq.${current}`).order('created_at',{ascending:false}).limit(150);
+  if(err)throw err;let mostRecent={};for(const m of recent||[]){let other=m.sender_id===current?m.recipient_id:m.sender_id;if(!mostRecent[other])mostRecent[other]=m}
+  lyraLatest=mostRecent;lyraLastRefresh=Date.now();
+  if(paint && view!=='room' && lyraProfile)lyraPaint();
+ }catch(e){lyraStatus('友だち情報の取得に失敗しました: '+e.message)}finally{lyraRefreshing=false}}
+function lyraSubscribe(){if(!lyraClient||!lyraUser)return;let id=lyraUser.id;lyraUnsubscribe();
+ const changes=()=>{if(lyraUser?.id!==id)return;lyraLoadConnections(view!=='room');if(view==='room')lyraRefreshRoom()};
+ const incoming=lyraClient.channel('lyra_messages_in_'+id).on('postgres_changes',{event:'INSERT',schema:'public',table:'lyra_messages',filter:'recipient_id=eq.'+id},changes).subscribe();
+ const outgoing=lyraClient.channel('lyra_messages_out_'+id).on('postgres_changes',{event:'INSERT',schema:'public',table:'lyra_messages',filter:'sender_id=eq.'+id},changes).subscribe();
+ const requests=lyraClient.channel('lyra_friends_in_'+id).on('postgres_changes',{event:'*',schema:'public',table:'lyra_connections',filter:'recipient_id=eq.'+id},()=>lyraLoadConnections()).subscribe();
+ const requestsOut=lyraClient.channel('lyra_friends_out_'+id).on('postgres_changes',{event:'*',schema:'public',table:'lyra_connections',filter:'requester_id=eq.'+id},()=>lyraLoadConnections()).subscribe();
+ lyraChannel=[incoming,outgoing,requests,requestsOut];
+ // Keep in sync after browser backgrounding or if a realtime websocket is disconnected.
+ lyraPoll=setInterval(()=>{if(!document.hidden){lyraLoadConnections(view!=='room');if(view==='room')lyraRefreshRoom()}},15000);
+}
+function lyraEditProfile(){overlay(`<button class="sheet-close" onclick="closeModal()">${icon('close','small')}</button><h3 class="sheet-title">表示名を変更</h3><form onsubmit="lyraSaveProfile(event)"><label class="field-label">表示名</label><input class="field" required maxlength="40" id="lyraNewName" value="${escapeHTML(lyraProfile.display_name)}"><button class="primary-btn" type="submit">保存する</button></form>`)}
+async function lyraSaveProfile(event){event.preventDefault();let name=$('#lyraNewName').value.trim();if(!name)return;try{let {error}=await lyraClient.from('lyra_profiles').update({display_name:name}).eq('id',lyraUser.id);if(error)throw error;lyraProfile.display_name=name;closeModal();lyraPaint();lyraStatus('表示名を保存しました')}
+ catch(e){lyraStatus('更新エラー: '+e.message)}}
+async function lyraLogout(){closeModal();lyraUnsubscribe();try{await lyraClient?.auth.signOut()}catch(e){lyraStatus('ログアウトエラー: '+e.message)}finally{lyraApplySession(null)}}
+function lyraSettings(){overlay(`<button class="sheet-close" onclick="closeModal()">${icon('close','small')}</button><h3 class="sheet-title">LYRA 設定</h3><div class="sheet-choice"><b>オンライン版</b><p>ログイン済みの友だちとのテキストメッセージがSupabaseに保存されます。友だち申請には相手の承認が必要です。</p></div><button class="option-line" onclick="lyraEditProfile()">${icon('user')}表示名を変更</button><button class="option-line" onclick="lyraLogout()">${icon('back')}ログアウト</button>`)}
+function lyraSearch(){lyraAddFriend()}
+function lyraInvite(){const url=location.origin+location.pathname;overlay(`<button class="sheet-close" onclick="closeModal()">${icon('close','small')}</button><h3 class="sheet-title">友だちを招待</h3><p>LYRAのURLを相手に伝えて登録してもらい、あなたの友だちコードを共有してください。</p><input class="field" id="lyraShareURL" readonly value="${escapeHTML(url)}"><button class="primary-btn" onclick="lyraCopyInvite()">リンクをコピー</button>`)}
+async function lyraCopyInvite(){try{await navigator.clipboard.writeText($('#lyraShareURL').value);lyraStatus('リンクをコピーしました')}catch{$('#lyraShareURL').select();lyraStatus('リンクを選択しました。長押ししてコピーしてください')}}
+// Replace local demo entrypoints with the connected application.
+go=lyraGo;
+render=lyraPaint;
+openRoom=lyraOpenRoom;
+openAddFriend=lyraAddFriend;
+openSettings=lyraSettings;
+openSearch=lyraSearch;
+editProfile=lyraEditProfile;
+inviteFriend=lyraInvite;
+window.addEventListener('DOMContentLoaded',async()=>{
+ try{
+  const config=lyraCurrentConfig();if(!config){lyraPaint();return}
+  lyraConfigure(config);lyraPaintLoading();const {data:{session},error}=await lyraClient.auth.getSession();if(error)throw error;
+  await lyraApplySession(session?.user||null);
+ }catch(e){lyraPaint();lyraStatus('起動エラー: '+e.message)}
+});
+
 </script>
 </body>
 </html>
