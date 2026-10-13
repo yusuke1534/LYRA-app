@@ -746,12 +746,49 @@ let lyraBotHistory=[],lyraBotLoadedFor=null,lyraBotJsonRequested=false,lyraBotIn
 function lyraBotNormalize(v){return String(v??'').normalize('NFKC').toLowerCase().replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-96)).replace(/[\s\u3000、。,.!?！？・〜~\-ー\[\]（）()「」『』:：]/g,'')}
 function lyraBotReply(text){
  const query=lyraBotNormalize(text);
+ // Topic-focused routing prevents broad geographic or generic words from
+ // overriding the actual question. No weather/news claims without live data.
+ const topicRules=[
+  {id:'weather',pattern:/(天気|天候|気温|降水|雨|晴れ|くもり|曇り|台風|雪|風速|暑い|寒い|気象|予報)/},
+  {id:'time',pattern:/(何時|何日|日付|曜日|現在時刻)/},
+  {id:'news',pattern:/(ニュース|速報|最新情報|時事)/},
+  {id:'videocall',pattern:/(ビデオ通話|テレビ電話|映像通話)/},
+  {id:'voicecall',pattern:/(音声通話|電話をかけ|通話したい)/},
+  {id:'friend_qr',pattern:/(qr|二次元コード)/},
+  {id:'friend_code',pattern:/(友だちコード|友達コード|招待コード)/},
+  {id:'friend_approval',pattern:/(友だち申請|友達申請|承認)/},
+  {id:'pet',pattern:/(ペット|動物)/},
+  {id:'dog',pattern:/(犬|トイプードル|わんこ|ドッグ)/},
+  {id:'cat',pattern:/(猫|にゃんこ)/}
+ ];
+ let intent=topicRules.find(r=>r.pattern.test(query));
+ const lastQuestion=[...lyraBotHistory].reverse().find(m=>m.by==='me');
+ if(!intent && /^(明日|あした|今日|きょう|週末|来週|それ|そこ|その場合|じゃあ)/.test(query) && lastQuestion){
+   const prior=lyraBotNormalize(lastQuestion.text);
+   if(/天気|気温|予報|雨|晴れ|曇り/.test(prior))intent=topicRules[0];
+ }
+ if(intent){
+   // Supply stable answers even when a separately deployed JSON is older.
+   if(intent.id==='weather') return '天気についてのご質問ですね。LYRAは現在、最新の天気予報を取得できません。地域名が分かっていても現在の天気や予報は断定できないため、気象庁などの天気予報をご確認ください。';
+   if(intent.id==='time') return '現在の日時はLYRAでは取得・確認していません。iPhoneの時計またはカレンダーをご確認ください。';
+   if(intent.id==='news') return 'LYRAでは最新のニュースを取得できません。ニュース提供元の最新情報をご確認ください。';
+   const item=lyraBotAnswers.find(x=>x.id===intent.id)||LYRA_BOT_DEFAULT.find(x=>x.id===intent.id);
+   if(item)return item.answer;
+ }
+ const broad=new Set(['fujinomiya','travel','mountfuji','pet','food','work','health','family','friends','help','love_lyra','nearby']);
  let winner=null,best=-Infinity;
  for(const item of lyraBotAnswers){
-   const hits=(item.keywords||[]).map(lyraBotNormalize).filter(k=>k.length>=2&&query.includes(k));
+   const keys=(item.keywords||[]).map(lyraBotNormalize);
+   const hits=keys.filter(k=>k.length>=2 && query.includes(k));
    if(!hits.length)continue;
+   // Broad single-term location matches must not hijack an unrelated question.
+   if(broad.has(item.id)&&hits.length===1&&query.length>hits[0].length+6){
+      if(item.id==='fujinomiya'&&/天気|気温|雨|予報/.test(query))continue;
+   }
    const longest=Math.max(...hits.map(k=>k.length));
-   const score=(Number(item.priority)||0)*1.5+longest*5+Math.min(hits.length,4)*6;
+   const exact=keys.some(k=>k===query)?1000:0;
+   const coverage=Math.min(1,hits.reduce((a,k)=>a+k.length,0)/Math.max(query.length,1));
+   const score=exact+longest*6+coverage*70+Math.min(hits.length,4)*10+Math.min(100,Number(item.priority)||0)*0.18;
    if(score>best){best=score;winner=item}
  }
  return winner?winner.answer:LYRA_BOT_FALLBACK;
@@ -806,7 +843,8 @@ function lyraBotSend(event){
 }
 function lyraBotAsk(text){
  lyraBotEnsureHistory();const question=String(text).trim().slice(0,500);if(!question)return;
- lyraBotHistory.push({by:'me',text:question},{by:'bot',text:lyraBotReply(question)});
+ const reply=lyraBotReply(question);
+ lyraBotHistory.push({by:'me',text:question},{by:'bot',text:reply});
  lyraBotHistory=lyraBotHistory.slice(-LYRA_BOT_MAX_HISTORY);
  lyraBotSave();lyraBotRenderMessages();
 }
