@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="lyra-build" content="20261013-qr-offline-v1">
 <meta name="theme-color" content="#eaf8ff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -65,6 +66,7 @@
 .lyra-qr-resolve{padding:12px;background:#edfaff;border-radius:14px;font-size:13px;color:#3167a0;margin:8px 0}
 @media(max-width:375px){.lyra-qr-mine{padding:12px 10px}.lyra-qr-wrap{min-width:218px;min-height:218px;padding:9px}.lyra-qr-wrap canvas,.lyra-qr-wrap img{width:200px!important;height:200px!important}}
 
+.lyra-qr-wrap canvas{image-rendering:pixelated!important;}
 </style>
 
 <style>
@@ -215,7 +217,121 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();if(e.ke
 render();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+<script>
+/* LYRA: offline QR generator for user-specific friend invitations.
+   Fixed QR version 6, ECC M, byte mode. No CDN/API required.
+   QR format generation conforms to ISO/IEC 18004. */
+(function(){
+  'use strict';
+  const VERSION=6, SIZE=41, CAPACITY=108, ECC=16, BLOCKS=4;
+  const EXP=new Uint8Array(512),LOG=new Uint8Array(256);
+  let t=1;
+  for(let i=0;i<255;i++) {EXP[i]=t;LOG[t]=i;t<<=1;if(t&256)t^=0x11d;}
+  for(let i=255;i<512;i++)EXP[i]=EXP[i-255];
+  function mul(a,b){return (!a||!b)?0:EXP[LOG[a]+LOG[b]];}
+  function rsGenerator(degree){
+    let p=[1];
+    for(let i=0;i<degree;i++){
+      const out=new Array(p.length+1).fill(0);
+      for(let j=0;j<p.length;j++){out[j]^=p[j];out[j+1]^=mul(p[j],EXP[i]);}
+      p=out;
+    }
+    return p;
+  }
+  const GEN=rsGenerator(ECC);
+  function encodeBytes(text){
+    const bytes=Array.from(new TextEncoder().encode(text));
+    if(bytes.length>106)throw new Error('QR用文字列が長すぎます');
+    const bits=[];
+    function put(v,count){for(let i=count-1;i>=0;i--)bits.push((v>>>i)&1);}
+    put(4,4);put(bytes.length,8);for(const b of bytes)put(b,8);
+    if(bits.length<CAPACITY*8){const rem=Math.min(4,CAPACITY*8-bits.length);bits.push(...Array(rem).fill(0));}
+    while(bits.length%8!==0)bits.push(0);
+    let padded=[];
+    for(let i=0;i<bits.length;i+=8){let num=0;for(let j=0;j<8;j++)num=(num<<1)|bits[i+j];padded.push(num);}
+    for(let i=0;padded.length<CAPACITY;i++)padded.push(i%2===0?0xec:0x11);
+    const dc=[],ec=[];
+    for(let block=0;block<BLOCKS;block++){
+      const data=padded.slice(block*27,block*27+27);
+      const word=data.concat(new Array(ECC).fill(0));
+      for(let i=0;i<data.length;i++){
+        const factor=word[i];
+        if(factor)for(let j=0;j<GEN.length;j++)word[i+j]^=mul(GEN[j],factor);
+      }
+      dc.push(data);ec.push(word.slice(27));
+    }
+    const out=[];
+    for(let j=0;j<27;j++)for(let b=0;b<BLOCKS;b++)out.push(dc[b][j]);
+    for(let j=0;j<ECC;j++)for(let b=0;b<BLOCKS;b++)out.push(ec[b][j]);
+    return out;
+  }
+  function matrix(text){
+    const code=encodeBytes(text);
+    const m=Array.from({length:SIZE},()=>Array(SIZE).fill(null));
+    function posFinder(row,col){
+      for(let y=-1;y<=7;y++)for(let x=-1;x<=7;x++){
+        const r=row+y,c=col+x;if(r<0||c<0||r>=SIZE||c>=SIZE)continue;
+        m[r][c]= ((y>=0&&y<=6&&(x===0||x===6)) || (x>=0&&x<=6&&(y===0||y===6)) || (x>=2&&x<=4&&y>=2&&y<=4));
+      }
+    }
+    posFinder(0,0);posFinder(0,SIZE-7);posFinder(SIZE-7,0);
+    for(const c of [6,34])for(const r of [6,34]){
+      if(m[r][c]!==null)continue;
+      for(let y=-2;y<=2;y++)for(let x=-2;x<=2;x++)m[r+y][c+x]=(Math.abs(x)===2||Math.abs(y)===2||(x===0&&y===0));
+    }
+    for(let r=8;r<SIZE-8;r++)if(m[r][6]===null)m[r][6]=(r%2===0);
+    for(let c=8;c<SIZE-8;c++)if(m[6][c]===null)m[6][c]=(c%2===0);
+    // Format information: error correction level M = 00, mask pattern 0.
+    const data=0;let d=data<<10;
+    const polynomial=0x537;
+    const degree=n=>n===0?0:32-Math.clz32(n);
+    while(degree(d)>=degree(polynomial))d^=polynomial<<(degree(d)-degree(polynomial));
+    const info=((data<<10)|d)^0x5412;
+    for(let i=0;i<15;i++){
+      const v=!!((info>>>i)&1);
+      if(i<6)m[i][8]=v;
+      else if(i<8)m[i+1][8]=v;
+      else m[SIZE-15+i][8]=v;
+      if(i<8)m[8][SIZE-i-1]=v;
+      else if(i===8)m[8][7]=v;
+      else m[8][15-i-1]=v;
+    }
+    m[SIZE-8][8]=true;
+    let index=0,dir=-1,row=SIZE-1;
+    for(let base=SIZE-1;base>0;base-=2){
+      const col=base<=6?base-1:base;
+      while(true){
+        for(let c=col;c>=col-1;c--){
+          if(m[row][c]!==null)continue;
+          let dark=index<code.length*8 ? !!(code[index>>>3] & (0x80>>>(index&7))) : false;
+          if(((row+c)%2)===0)dark=!dark;
+          m[row][c]=dark;index++;
+        }
+        row+=dir;
+        if(row<0||row>=SIZE){row-=dir;dir=-dir;break;}
+      }
+    }
+    return m;
+  }
+  function toCanvas(canvas,text,opts,callback){
+    try{
+      opts=opts||{};
+      const modules=matrix(String(text));
+      const margin=4,box=6;
+      const size=(SIZE+margin*2)*box;
+      canvas.width=size;canvas.height=size;
+      const ctx=canvas.getContext('2d');if(!ctx)throw Error('canvas is not supported');
+      ctx.fillStyle='#ffffff';ctx.fillRect(0,0,size,size);
+      ctx.fillStyle=opts.color?.dark||'#14386e';
+      for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(modules[y][x])ctx.fillRect((x+margin)*box,(y+margin)*box,box,box);
+      if(typeof callback==='function')callback(null);
+      return canvas;
+    }catch(err){if(typeof callback==='function')callback(err);else throw err;}
+  }
+  window.LyraOfflineQR={toCanvas,matrix};
+})();
+
+</script>
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 /* LYRA online mode (Supabase auth + reciprocal friend approval + Realtime text chat).
@@ -468,11 +584,22 @@ function lyraShowMyQR(){
 }
 function lyraGenerateMyQRCode(url){
  const holder=$('#lyraQRCanvasHolder');if(!holder)return;
- if(!window.QRCode?.toCanvas){holder.innerHTML='<p class="lyra-qr-guidance">QR生成ライブラリを読み込めません。ネット接続を確認して再読み込みしてください。下の招待リンクは共有できます。</p>';return}
- const canvas=document.createElement('canvas');holder.replaceChildren(canvas);
- window.QRCode.toCanvas(canvas,url,{width:232,margin:2,errorCorrectionLevel:'M',color:{dark:'#14386e',light:'#ffffff'}},err=>{
-   if(err&&holder.isConnected)holder.innerHTML='<p class="lyra-qr-guidance">QR生成に失敗しました。招待リンクをご利用ください。</p>';
- });
+ const canvas=document.createElement('canvas');
+ canvas.setAttribute('role','img');
+ canvas.setAttribute('aria-label','あなたのLYRA友だち追加用QRコード');
+ holder.replaceChildren(canvas);
+ try{
+   // The generator is bundled inside this HTML: independent of CDN or network access.
+   window.LyraOfflineQR.toCanvas(canvas,url,{color:{dark:'#14386e',light:'#ffffff'}},err=>{
+     if(err && holder.isConnected){
+       holder.innerHTML='<p class="lyra-qr-guidance">QR生成に失敗しました。招待リンクをご利用ください。</p>';
+       console.error('LYRA QR error',err);
+     }
+   });
+ }catch(err){
+   console.error('LYRA QR error',err);
+   holder.innerHTML='<p class="lyra-qr-guidance">QR生成に失敗しました。招待リンクをご利用ください。</p>';
+ }
 }
 async function lyraShareMyQR(){
  const link=lyraQRInviteLink();
