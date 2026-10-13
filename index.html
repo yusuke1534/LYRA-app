@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="lyra-build" content="20261014-local-ja-en-beta1">
+<meta name="lyra-build" content="20261014-local-ja-en-fav-avatar-fix1">
 <meta name="theme-color" content="#eaf8ff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -183,6 +183,16 @@
 .round-btn .live-avatar{border:0;box-shadow:none}
 </style>
 <link rel="manifest" href="./manifest.webmanifest?v=20261013-newlogo"><link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=20261013-newlogo">
+
+<style id="lyra-favorite-avatar-alignment-fix">
+/* The photo completely replaces the old favorite circle.
+   Keep a single centered 65/70px box; avoid the child's --sz minimum overflow. */
+.fav-image { box-sizing:border-box; flex:0 0 auto; overflow:hidden; }
+.fav-image .live-avatar { box-sizing:border-box; width:100%; height:100%; min-width:0; min-height:0; max-width:100%; max-height:100%; margin:0; border-radius:50%; }
+.fav-image.has-photo { padding:0; border:0; background:transparent; box-shadow:none; }
+.fav-image.has-photo .live-avatar.lyra-avatar-photo { padding:0; border:0; background:transparent; box-shadow:none; overflow:hidden; }
+.fav-image.has-photo .live-avatar.lyra-avatar-photo img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center; border-radius:50%; display:block; }
+</style>
 </head>
 <body>
 <div class="ambient"><div class="orb one"></div><div class="orb two"></div><div class="orb three"></div></div>
@@ -414,10 +424,13 @@ function lyraAvatarUrl(path){
  if(!/^[0-9a-f-]{36}\/avatar-\d{13}-[a-z0-9]{6}\.jpg$/i.test(path))return '';
  return lyraClient.storage.from('lyra-avatars').getPublicUrl(path).data?.publicUrl||'';
 }
-function lyraAvatar(name,size=47,userId=null){
+function lyraAvatarPhotoUrl(userId){
  const path=userId===lyraUser?.id ? lyraProfile?.avatar_path : (userId?lyraAvatarPaths[userId]:null);
- const image=lyraAvatarUrl(path);
- return `<span class="live-avatar ${image?'lyra-avatar-photo':''}" style="--sz:${Number(size)||47}px" aria-label="${escapeHTML(name||'ユーザー')}">${escapeHTML(lyraInitial(name))}${image?`<img src="${escapeHTML(image)}" alt="" loading="lazy" onerror="this.remove()">`:''}</span>`;
+ return lyraAvatarUrl(path);
+}
+function lyraAvatar(name,size=47,userId=null){
+ const image=lyraAvatarPhotoUrl(userId);
+ return `<span class="live-avatar ${image?'lyra-avatar-photo':''}" style="--sz:${Number(size)||47}px" aria-label="${escapeHTML(name||'ユーザー')}">${escapeHTML(lyraInitial(name))}${image?`<img src="${escapeHTML(image)}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('lyra-avatar-photo');this.parentNode.closest('.fav-image')?.classList.remove('has-photo');this.remove()">`:''}</span>`;
 }
 async function lyraFetchFriendAvatars(force=false){
  if(!lyraClient||!lyraUser)return;
@@ -523,7 +536,7 @@ function lyraIncoming(){const pending=lyraConnections.filter(c=>c.connection_sta
  return `<section class="live-request-section"><div class="section-head"><h2>友だち申請 <span class="live-count">${pending.length}</span></h2></div>${pending.map(c=>`<div class="live-request">${lyraAvatar(c.other_display_name,43,c.other_user_id)}<div class="live-request-name">${escapeHTML(c.other_display_name)}<small>友だち申請が届きました</small></div><button onclick="lyraRespond('${c.connection_id}',true)">承認</button><button class="decline" onclick="lyraRespond('${c.connection_id}',false)">拒否</button></div>`).join('')}</section>`;
 }
 function lyraHome(){let fav=lyraOrderedFriends().slice(0,8);return `<div class="home-view"><button class="hero" style="width:100%;text-align:left" onclick="go('ai')"><div class="hero-text"><div class="hero-title">話すたび、<br>日常が少しやさしくなる。</div><div class="hero-detail">大切な人と、AIと、いつでもつながれる<br>あなただけの居場所。</div></div><span class="hero-go">${icon('chevron')}</span></button>
- <div class="section-head"><h2>お気に入り</h2><button class="small-link" onclick="go('talk')">すべて見る ›</button></div><div class="favorites"><button class="favorite" onclick="lyraAddFriend()"><span class="fav-image fav-add">+</span><span class="fav-title">追加</span></button>${fav.map((c,i)=>`<button class="favorite" onclick="lyraOpenRoom('${c.other_user_id}')"><span class="fav-image ${i===0?'selected':''}">${lyraAvatar(c.other_display_name,64,c.other_user_id)}</span><span class="fav-title">${escapeHTML(c.other_display_name)}</span></button>`).join('')}</div>
+ <div class="section-head"><h2>お気に入り</h2><button class="small-link" onclick="go('talk')">すべて見る ›</button></div><div class="favorites"><button class="favorite" onclick="lyraAddFriend()"><span class="fav-image fav-add">+</span><span class="fav-title">追加</span></button>${fav.map((c,i)=>`<button class="favorite" onclick="lyraOpenRoom('${c.other_user_id}')"><span class="fav-image ${lyraAvatarPhotoUrl(c.other_user_id)?'has-photo':(i===0?'selected':'')}">${lyraAvatar(c.other_display_name,64,c.other_user_id)}</span><span class="fav-title">${escapeHTML(c.other_display_name)}</span></button>`).join('')}</div>
  ${lyraIncoming()}<div class="section-head chat-heading"><h2>最近のチャット</h2><button class="small-link" onclick="go('talk')">すべて ›</button></div><div class="chat-list">${lyraOrderedFriends().length?lyraOrderedFriends().map(lyraChatRow).join(''):'<div class="live-empty">まだ友だちがいません。<br>上の「追加」からQRコードか友だちコードでつながりましょう。</div>'}</div></div>`}
 function lyraTalk(){const list=lyraOrderedFriends().filter(c=>!filter || c.other_display_name.toLowerCase().includes(filter.toLowerCase()));const outgoing=lyraConnections.filter(c=>c.connection_status==='pending'&&c.direction==='outgoing');
  return `<div class="screen-pad"><div class="sub-header" style="padding-left:0;padding-right:0"><div class="sub-title">トーク</div><button class="lightbtn" onclick="lyraAddFriend()" aria-label="友だち追加">${icon('message-plus')}</button></div>
