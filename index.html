@@ -42,6 +42,29 @@
 .live-code-card{background:linear-gradient(130deg,#ebfaff,#ecf2ff);border-radius:24px;padding:21px 18px;margin-bottom:17px;text-align:center;border:1px solid white;box-shadow:0 7px 20px #9ad5ff3b}.live-code-card span{display:block;color:#708baa;font-size:12px}.live-code-card strong{display:block;font-size:25px;letter-spacing:.13em;margin:9px 0;color:#086af2;user-select:all}.live-code-card p{font-size:12px;line-height:1.6;color:#657e9a}.live-code-card .primary-btn{margin-top:10px}.live-found{display:flex;align-items:center;gap:12px;margin:15px 0;background:#effaff;padding:12px;border-radius:17px}.live-own-code{margin-top:26px;font-size:12px;color:#6e87a6;line-height:2}.live-own-code strong{color:#1165bd;letter-spacing:.07em}.live-own-code button{padding:7px;color:#087af0;background:#eef8ff;border-radius:8px;margin-left:7px}
 .live-auth .field-label{margin-top:6px;display:block}
 @media(max-width:700px){.live-auth{min-height:calc(100% - 5px)}.live-code-card strong{font-size:21px}.live-request{gap:5px}.live-request button{padding:7px}}
+
+/* LYRA QR friend add: original blue-to-aqua visual language */
+.lyra-qr-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.lyra-qr-action{border-radius:17px;padding:14px 8px 12px;background:linear-gradient(140deg,#edfbff,#e8f1ff);color:#1467bd;border:1px solid #d9f0ff;display:flex;flex-direction:column;gap:7px;align-items:center;justify-content:center;font-weight:750;font-size:13px;box-shadow:0 5px 13px #76bbef20}
+.lyra-qr-action .icon{width:26px;height:26px}
+.lyra-qr-action.primary{color:#fff;background:linear-gradient(135deg,#167cff,#21c9e9);border-color:#65dcf9;box-shadow:0 6px 17px #2f9aea40}
+.lyra-qr-mine{border-radius:22px;text-align:center;background:linear-gradient(150deg,#effaff,#f7fbff);padding:18px 16px 15px;box-shadow:inset 0 1px 2px #fff,0 7px 23px #7dbef128}
+.lyra-qr-mine .tag{font-size:12px;color:#4b7baa;margin:3px 0 7px}
+.lyra-qr-mine .name{font-weight:800;font-size:20px;color:#103a74;margin-bottom:8px}
+.lyra-qr-wrap{border-radius:22px;padding:13px;background:#fff;width:max-content;max-width:100%;margin:10px auto;box-shadow:0 7px 23px #168cf120;min-width:250px;min-height:250px;display:grid;place-items:center;overflow:hidden}
+.lyra-qr-wrap canvas,.lyra-qr-wrap img{display:block;width:230px!important;height:230px!important;max-width:100%;image-rendering:auto}
+.lyra-qr-url{font-size:10px;overflow-wrap:anywhere;color:#6e88a4;text-align:center;line-height:1.6;margin:10px 0}
+.lyra-qr-reader{min-height:260px;border:2px dashed #a1d8f7;border-radius:18px;overflow:hidden;background:#f5fbff;margin:12px 0;position:relative}
+.lyra-qr-reader video{border-radius:12px;max-width:100%}
+.lyra-qr-reader img{max-width:100%}
+.lyra-qr-guidance{font-size:12px!important;line-height:1.8;color:#667fa0;margin:11px 0}
+.lyra-qr-line{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:13px}
+.lyra-qr-line button{flex:1;border-radius:12px;padding:12px;background:#eef6ff;color:#186ebc;font-weight:750;font-size:12px}
+.lyra-qr-line button.strong{background:linear-gradient(120deg,#0785fe,#25d8e4);color:#fff}
+.lyra-qr-file{display:block;width:100%;margin-top:10px;border:1px solid #d3e7f9;background:#f4faff;color:#23578b;padding:12px;border-radius:14px;font-size:12px}
+.lyra-qr-resolve{padding:12px;background:#edfaff;border-radius:14px;font-size:13px;color:#3167a0;margin:8px 0}
+@media(max-width:375px){.lyra-qr-mine{padding:12px 10px}.lyra-qr-wrap{min-width:218px;min-height:218px;padding:9px}.lyra-qr-wrap canvas,.lyra-qr-wrap img{width:200px!important;height:200px!important}}
+
 </style>
 </head>
 <body>
@@ -139,6 +162,8 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();if(e.ke
 render();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 /* LYRA online mode (Supabase auth + reciprocal friend approval + Realtime text chat).
    Do not put service_role or sb_secret_ credentials in public HTML. */
@@ -212,6 +237,8 @@ async function lyraApplySession(user){
   if(error)throw error;
   if(lyraUser?.id!==user.id)return;
   lyraProfile=profile;await lyraLoadConnections(false);lyraSubscribe();lyraPaint();
+  // QR invite links work even when the visitor signs up or logs in first.
+  queueMicrotask(()=>lyraPromptPendingQRInvite());
  }catch(e){lyraProfile=null;lyraStatus('データベースの準備を確認してください: '+e.message);lyraPaint()}
  finally{if(lyraSessionLoading===user.id)lyraSessionLoading=null}
 }
@@ -242,7 +269,7 @@ function lyraIncoming(){const pending=lyraConnections.filter(c=>c.connection_sta
 }
 function lyraHome(){let fav=lyraOrderedFriends().slice(0,8);return `<div class="home-view"><button class="hero" style="width:100%;text-align:left" onclick="go('ai')"><div class="hero-text"><div class="hero-title">話すたび、<br>日常が少しやさしくなる。</div><div class="hero-detail">大切な人と、AIと、いつでもつながれる<br>あなただけの居場所。</div></div><span class="hero-go">${icon('chevron')}</span></button>
  <div class="section-head"><h2>お気に入り</h2><button class="small-link" onclick="go('talk')">すべて見る ›</button></div><div class="favorites"><button class="favorite" onclick="lyraAddFriend()"><span class="fav-image fav-add">+</span><span class="fav-title">追加</span></button>${fav.map((c,i)=>`<button class="favorite" onclick="lyraOpenRoom('${c.other_user_id}')"><span class="fav-image ${i===0?'selected':''}">${lyraAvatar(c.other_display_name,64)}</span><span class="fav-title">${escapeHTML(c.other_display_name)}</span></button>`).join('')}</div>
- ${lyraIncoming()}<div class="section-head chat-heading"><h2>最近のチャット</h2><button class="small-link" onclick="go('talk')">すべて ›</button></div><div class="chat-list">${lyraOrderedFriends().length?lyraOrderedFriends().map(lyraChatRow).join(''):'<div class="live-empty">まだ友だちがいません。<br>上の「追加」から友だちコードでつながりましょう。</div>'}</div></div>`}
+ ${lyraIncoming()}<div class="section-head chat-heading"><h2>最近のチャット</h2><button class="small-link" onclick="go('talk')">すべて ›</button></div><div class="chat-list">${lyraOrderedFriends().length?lyraOrderedFriends().map(lyraChatRow).join(''):'<div class="live-empty">まだ友だちがいません。<br>上の「追加」からQRコードか友だちコードでつながりましょう。</div>'}</div></div>`}
 function lyraTalk(){const list=lyraOrderedFriends().filter(c=>!filter || c.other_display_name.toLowerCase().includes(filter.toLowerCase()));const outgoing=lyraConnections.filter(c=>c.connection_status==='pending'&&c.direction==='outgoing');
  return `<div class="screen-pad"><div class="sub-header" style="padding-left:0;padding-right:0"><div class="sub-title">トーク</div><button class="lightbtn" onclick="lyraAddFriend()" aria-label="友だち追加">${icon('message-plus')}</button></div>
  <label class="searchbar">${icon('search')}<input id="listSearch" type="search" placeholder="友だちの名前で検索" value="${escapeHTML(filter)}" oninput="lyraFilterTalk(this.value)"></label>
@@ -254,16 +281,17 @@ function lyraFilterTalk(value){filter=value;const el=$('#filteredChats');if(el){
 function lyraCalls(){return `<div class="screen-pad"><div class="sub-header" style="padding:0"><div class="sub-title">通話</div></div><div class="live-empty">${icon('phone','big')}<h3>音声・ビデオ通話は準備中です</h3>友だちとのリアルタイム文字チャットは利用できます。<br>通話には別途 WebRTC や通話サーバーが必要です。</div></div>`}
 function lyraAI(){return `<div class="screen-pad"><div class="sub-header" style="padding:0"><div class="sub-title">LYRA AI</div></div><div class="ai-welcome"><img src="${pic('ai')}" alt=""><div><b>AI相談パートナー</b><p>現在はAI接続前のデモです。実際のAIとの会話はまだ利用できません。</p></div></div><div class="live-empty">AIは今後接続予定です。<br>友だちとのチャットは「トーク」から利用できます。</div></div>`}
 function lyraProfileView(){return `<div class="screen-pad"><div class="sub-header" style="padding:0"><div class="sub-title">マイページ</div></div><div class="profile-top">${lyraAvatar(lyraProfile.display_name,75)}<div><b>${escapeHTML(lyraProfile.display_name)}</b><p>LYRA にログイン中</p></div></div>
- <div class="live-code-card"><span>あなたの友だちコード</span><strong>${escapeHTML(lyraProfile.friend_code)}</strong><p>このコードを相手に伝え、友だち申請してもらえます。</p><button class="primary-btn" onclick="lyraCopyCode()">コードをコピー</button></div>
+ <div class="live-code-card"><span>あなたの友だちコード</span><strong>${escapeHTML(lyraProfile.friend_code)}</strong><p>QRコードを見せるだけでも友だち申請を受け取れます。</p><div class="lyra-qr-actions"><button class="lyra-qr-action primary" onclick="lyraShowMyQR()">${icon('share')}マイQRを表示</button><button class="lyra-qr-action" onclick="lyraShowQRScanner()">${icon('search')}QRを読み取る</button></div><button class="primary-btn" onclick="lyraCopyCode()">コードをコピー</button></div>
  <button class="option-line" onclick="lyraEditProfile()">${icon('edit')}表示名を変更 ${icon('chevron','small')}</button>
- <button class="option-line" onclick="lyraAddFriend()">${icon('message-plus')}友だちを追加 ${icon('chevron','small')}</button>
+ <button class="option-line" onclick="lyraAddFriend()">${icon('message-plus')}友だちを追加（コード・QR） ${icon('chevron','small')}</button>
  <button class="option-line" onclick="lyraInvite()">${icon('share')}アプリを共有 ${icon('chevron','small')}</button>
  <button class="option-line" onclick="lyraSettings()">${icon('settings')}設定・ログアウト ${icon('chevron','small')}</button>
  <p class="profile-note">友だちの承認とメッセージの保存はSupabaseで管理しています。</p></div>`}
 async function lyraCopyCode(){const code=lyraProfile?.friend_code;if(!code)return;try{await navigator.clipboard.writeText(code);lyraStatus('友だちコードをコピーしました')}catch{overlay(`<h3 class="sheet-title">あなたの友だちコード</h3><input class="field" readonly value="${escapeHTML(code)}" onclick="this.select()"><p>長押ししてコピーしてください。</p><button class="primary-btn" onclick="closeModal()">閉じる</button>`)}}
 function lyraAddFriend(){if(!lyraProfile)return;
- overlay(`<button class="sheet-close" onclick="closeModal()">${icon('close','small')}</button><h3 class="sheet-title">友だちを追加</h3><p>相手の12桁の友だちコードを入力すると、友だち申請を送れます。相手の承認後にチャットが利用できます。</p>
- <label class="field-label">友だちコード</label><input class="field" id="lyraFriendCode" maxlength="20" autocapitalize="characters" placeholder="例：A1B2C3D4E5F6">
+ overlay(`<button class="sheet-close" onclick="closeModal()">${icon('close','small')}</button><h3 class="sheet-title">友だちを追加</h3><p>QRコードを読み取るか、12桁の友だちコードで検索できます。相手の承認後にチャットが利用できます。</p>
+ <div class="lyra-qr-actions"><button class="lyra-qr-action primary" onclick="lyraShowQRScanner()">${icon('search')}QRを読み取る</button><button class="lyra-qr-action" onclick="lyraShowMyQR()">${icon('share')}自分のQRを表示</button></div>
+ <label class="field-label">友だちコードで追加</label><input class="field" id="lyraFriendCode" maxlength="20" autocapitalize="characters" placeholder="例：A1B2C3D4E5F6">
  <button class="primary-btn" onclick="lyraFindFriend()">コードで検索</button><div id="lyraFriendResult"></div>
  <div class="live-own-code">あなたのコード：<strong>${escapeHTML(lyraProfile.friend_code)}</strong><button onclick="lyraCopyCode()">コピー</button></div>`)
 }
@@ -318,6 +346,179 @@ function lyraSettings(){overlay(`<button class="sheet-close" onclick="closeModal
 function lyraSearch(){lyraAddFriend()}
 function lyraInvite(){const url=location.origin+location.pathname;overlay(`<button class="sheet-close" onclick="closeModal()">${icon('close','small')}</button><h3 class="sheet-title">友だちを招待</h3><p>LYRAのURLを相手に伝えて登録してもらい、あなたの友だちコードを共有してください。</p><input class="field" id="lyraShareURL" readonly value="${escapeHTML(url)}"><button class="primary-btn" onclick="lyraCopyInvite()">リンクをコピー</button>`)}
 async function lyraCopyInvite(){try{await navigator.clipboard.writeText($('#lyraShareURL').value);lyraStatus('リンクをコピーしました')}catch{$('#lyraShareURL').select();lyraStatus('リンクを選択しました。長押ししてコピーしてください')}}
+
+/* LYRA QR friend invitations. Uses the existing SQL functions and friend approval flow.
+   QR only contains a public app URL + friend code; no session/token/password. */
+const LYRA_QR_INVITE_KEY='lyra_pending_invite_code_v1';
+let lyraQRScanner=null,lyraQRCameraBusy=false,lyraQRAccepting=false,lyraQRPromptBusy=false;
+const lyraCleanFriendCode=code=>String(code||'').replace(/[^0-9a-f]/gi,'').toUpperCase();
+const lyraValidFriendCode=code=>/^[0-9A-F]{12}$/.test(lyraCleanFriendCode(code));
+function lyraQRInviteLink(code=lyraProfile?.friend_code){
+  const c=lyraCleanFriendCode(code);
+  if(!lyraValidFriendCode(c))throw Error('友だちコードが不正です');
+  const base=location.protocol==='https:'&&location.hostname==='yusuke1534.github.io' ? location.origin+location.pathname : 'https://yusuke1534.github.io/LYRA-app/';
+  const url=new URL(base);url.searchParams.set('friend',c);return url.href;
+}
+function lyraQRCodeFromValue(value){
+  let raw=String(value||'').trim();
+  if(/^[0-9a-f]{12}$/i.test(raw))return raw.toUpperCase();
+  try{
+    const link=new URL(raw);
+    if(link.protocol!=='https:')return null;
+    const allowed=['https://yusuke1534.github.io/LYRA-app/',location.origin+location.pathname];
+    if(!allowed.some(x=>link.origin+link.pathname===new URL(x).origin+new URL(x).pathname))return null;
+    const code=link.searchParams.get('friend');
+    return code&&lyraValidFriendCode(code)?lyraCleanFriendCode(code):null;
+  }catch{return null}
+}
+function lyraRememberIncomingQR(){
+  const code=lyraQRCodeFromValue(location.href);
+  if(!code)return;
+  try{localStorage.setItem(LYRA_QR_INVITE_KEY,JSON.stringify({code,created:Date.now()}))}catch{}
+}
+function lyraClearPendingInvite(){
+  try{localStorage.removeItem(LYRA_QR_INVITE_KEY)}catch{}
+  try{const url=new URL(location.href);if(url.searchParams.has('friend')){url.searchParams.delete('friend');history.replaceState(null,'',url.pathname+url.search+url.hash)}}catch{}
+}
+function lyraPromptPendingQRInvite(){
+  if(lyraQRPromptBusy||!lyraUser||!lyraProfile)return;
+  let entry=null;try{entry=JSON.parse(localStorage.getItem(LYRA_QR_INVITE_KEY)||'null')}catch{}
+  if(!entry||!lyraValidFriendCode(entry.code))return;
+  if(Date.now()-entry.created>7*86400000){lyraClearPendingInvite();return}
+  if($('#modalLayer'))return; // never replace an existing modal
+  lyraQRPromptBusy=true;
+  lyraClearPendingInvite();
+  lyraQRFindAndConfirm(entry.code).finally(()=>{lyraQRPromptBusy=false});
+}
+const lyraOriginalCloseModal=closeModal;
+closeModal=function(){lyraStopQRScanner();lyraOriginalCloseModal()};
+async function lyraStopQRScanner(){
+  const scanner=lyraQRScanner;lyraQRScanner=null;
+  if(!scanner)return;
+  try{await scanner.stop()}catch{}
+  try{scanner.clear()}catch{}
+  lyraQRCameraBusy=false;
+}
+function lyraShowMyQR(){
+  if(!lyraProfile)return lyraStatus('ログインしてください');
+  lyraStopQRScanner();
+  const url=lyraQRInviteLink();
+  overlay(`<button class="sheet-close" aria-label="閉じる" onclick="closeModal()">${icon('close','small')}</button>
+  <h3 class="sheet-title">マイQRコード</h3>
+  <div class="lyra-qr-mine"><div class="tag">LYRA FRIEND QR</div><div class="name">${escapeHTML(lyraProfile.display_name)}</div>
+  <div class="lyra-qr-wrap" id="lyraQRCanvasHolder"><span class="lyra-qr-guidance">QRコードを作成しています…</span></div>
+  <b style="letter-spacing:.14em;color:#176bbb">${escapeHTML(lyraProfile.friend_code)}</b></div>
+  <p class="lyra-qr-guidance">このQRを相手のiPhoneの標準カメラ、またはLYRAの「QRを読み取る」で読み取ってもらってください。友だち申請は承認後に成立します。</p>
+  <div class="lyra-qr-line"><button onclick="lyraShareMyQR()">招待リンクを共有</button><button class="strong" onclick="lyraSaveMyQR()">QR画像を保存</button></div>
+  <div class="lyra-qr-url">${escapeHTML(url)}</div>`);
+  lyraGenerateMyQRCode(url);
+}
+function lyraGenerateMyQRCode(url){
+ const holder=$('#lyraQRCanvasHolder');if(!holder)return;
+ if(!window.QRCode?.toCanvas){holder.innerHTML='<p class="lyra-qr-guidance">QR生成ライブラリを読み込めません。ネット接続を確認して再読み込みしてください。下の招待リンクは共有できます。</p>';return}
+ const canvas=document.createElement('canvas');holder.replaceChildren(canvas);
+ window.QRCode.toCanvas(canvas,url,{width:232,margin:2,errorCorrectionLevel:'M',color:{dark:'#14386e',light:'#ffffff'}},err=>{
+   if(err&&holder.isConnected)holder.innerHTML='<p class="lyra-qr-guidance">QR生成に失敗しました。招待リンクをご利用ください。</p>';
+ });
+}
+async function lyraShareMyQR(){
+ const link=lyraQRInviteLink();
+ if(navigator.share){try{await navigator.share({title:'LYRA 友だち追加',text:'LYRAで友だちになりましょう',url:link});return}catch(e){if(e.name==='AbortError')return}}
+ try{await navigator.clipboard.writeText(link);lyraStatus('招待リンクをコピーしました')}catch{
+   overlay(`<button class="sheet-close" onclick="closeModal()">${icon('close','small')}</button><h3 class="sheet-title">招待リンク</h3><input class="field" readonly onclick="this.select()" value="${escapeHTML(link)}"><p>長押ししてコピーしてください。</p>`)
+ }
+}
+async function lyraSaveMyQR(){
+ const canvas=$('#lyraQRCanvasHolder canvas');
+ if(!canvas)return lyraStatus('QRコードの表示を確認してください');
+ try{
+   const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+   if(!blob)throw Error('画像作成失敗');
+   const file=new File([blob],'LYRA-QR-'+lyraProfile.friend_code+'.png',{type:'image/png'});
+   if(navigator.canShare?.({files:[file]}) && navigator.share){await navigator.share({files:[file],title:'LYRA マイQRコード'});return}
+   const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download=file.name;document.body.append(a);a.click();a.remove();
+   lyraStatus('QR画像を保存しました');
+ }catch(e){if(e?.name!=='AbortError')lyraStatus('保存できない場合はQR画像を長押しして保存してください')}
+}
+function lyraShowQRScanner(){
+ if(!lyraProfile)return lyraStatus('ログインしてください');
+ overlay(`<button class="sheet-close" aria-label="閉じる" onclick="closeModal()">${icon('close','small')}</button>
+ <h3 class="sheet-title">QRコードを読み取る</h3>
+ <p class="lyra-qr-guidance">相手のLYRA用QRコードをカメラで読み取るか、QRが写った写真を選んでください。</p>
+ <div class="lyra-qr-reader" id="lyraQRReader"><div class="live-empty">下の「カメラを起動」を押してください</div></div>
+ <button class="primary-btn" id="lyraStartCamera" onclick="lyraStartQRScanner()">${icon('search','small')} カメラを起動</button>
+ <label class="lyra-qr-guidance" for="lyraQRFile">保存したQR画像から読み取る</label>
+ <input class="lyra-qr-file" id="lyraQRFile" type="file" accept="image/*" aria-label="QR画像を選択" onchange="lyraReadQRImage(event)">
+ <p class="lyra-qr-guidance">iPhoneの標準カメラで相手のQRを読み、表示されたLYRAのリンクを開く方法も使えます。カメラを許可する必要があります。</p>`);
+}
+async function lyraStartQRScanner(){
+ const target=$('#lyraQRReader');if(!target)return;
+ if(!window.Html5Qrcode){target.innerHTML='<p class="live-empty">QR読み取りライブラリを読み込めません。インターネットに接続して再読み込みするか、iPhone標準カメラをご利用ください。</p>';return}
+ const button=$('#lyraStartCamera');if(button){button.disabled=true;button.textContent='カメラを起動中…'};
+ await lyraStopQRScanner();
+ if(!$('#lyraQRReader'))return;
+ target.textContent='';
+ try{
+   const scanner=new Html5Qrcode('lyraQRReader',{verbose:false});lyraQRScanner=scanner;
+   lyraQRAccepting=false;
+   await scanner.start({facingMode:'environment'},{fps:8,qrbox:{width:220,height:220}},async(text)=>{
+     if(lyraQRAccepting)return;
+     lyraQRAccepting=true;
+     await lyraHandleScannedQR(text);
+     lyraQRAccepting=false;
+   },()=>{});
+   if(lyraQRScanner===scanner)lyraQRCameraBusy=true;
+   else{try{await scanner.stop()}catch{}try{scanner.clear()}catch{}}
+ }catch(e){
+   await lyraStopQRScanner();
+   const reader=$('#lyraQRReader');if(reader)reader.innerHTML='<p class="live-empty">カメラを起動できませんでした。Safariのカメラ許可を確認するか、iPhone標準カメラで読み取ってください。</p>';
+ }finally{const b=$('#lyraStartCamera');if(b){b.disabled=false;b.textContent='カメラを再起動'}}
+}
+async function lyraReadQRImage(event){
+ const file=event.target.files?.[0];if(!file)return;
+ if(file.size>12*1024*1024)return lyraStatus('12MB以下の写真を選んでください');
+ if(!window.Html5Qrcode)return lyraStatus('QR読取ライブラリがありません。Safariで再読み込みしてください');
+ await lyraStopQRScanner();
+ try{
+   const scanner=new Html5Qrcode('lyraQRReader',{verbose:false});lyraQRScanner=scanner;
+   const content=await scanner.scanFile(file,true);
+   await lyraStopQRScanner();
+   await lyraHandleScannedQR(content);
+ }catch(e){
+   await lyraStopQRScanner();
+   const reader=$('#lyraQRReader');if(reader)reader.innerHTML='<p class="live-empty">この画像からQRコードを見つけられませんでした。明るく鮮明な画像をお試しください。</p>';
+ }finally{if(event.target.isConnected)event.target.value=''}
+}
+async function lyraHandleScannedQR(text){
+ const code=lyraQRCodeFromValue(text);
+ if(!code){lyraStatus('LYRAの友だちQRコードではありません');return}
+ await lyraStopQRScanner();
+ await lyraQRFindAndConfirm(code);
+}
+async function lyraQRFindAndConfirm(code){
+ if(!lyraClient||!lyraProfile)return;
+ const clean=lyraCleanFriendCode(code);
+ if(!lyraValidFriendCode(clean))return lyraStatus('友だちコードが正しくありません');
+ if(clean===lyraProfile.friend_code){lyraStatus('これは自分のQRコードです');return}
+ overlay(`<button class="sheet-close" onclick="closeModal()">${icon('close','small')}</button><h3 class="sheet-title">友だちを確認</h3><div class="lyra-qr-resolve">QRコードの持ち主を確認しています…</div>`);
+ try{
+   const {data,error}=await lyraClient.rpc('lyra_find_friend',{p_code:clean});
+   if(error)throw error;
+   const person=data?.[0];
+   if(!person){overlay(`<button class="sheet-close" onclick="closeModal()">${icon('close','small')}</button><h3 class="sheet-title">見つかりません</h3><p>このQRコードに対応するLYRAユーザーが見つかりませんでした。</p>`);return}
+   const conn=lyraConnections.find(c=>c.other_user_id===person.user_id);
+   let button='';
+   if(conn?.connection_status==='accepted') button=`<button class="primary-btn" onclick="closeModal();lyraOpenRoom('${person.user_id}')">チャットを開く</button>`;
+   else if(conn?.connection_status==='pending'&&conn.direction==='outgoing')button='<p>友だち申請済みです。相手の承認をお待ちください。</p>';
+   else if(conn?.connection_status==='pending'&&conn.direction==='incoming')button=`<button class="primary-btn" onclick="closeModal();go('talk')">届いている友だち申請を確認</button>`;
+   else button=`<button class="primary-btn" onclick="lyraSendRequest('${clean}')">この人に友だち申請する</button>`;
+   overlay(`<button class="sheet-close" aria-label="閉じる" onclick="closeModal()">${icon('close','small')}</button><h3 class="sheet-title">QRコードで友だち追加</h3>
+     <div class="lyra-qr-mine">${lyraAvatar(person.user_name,64)}<div class="name" style="margin-top:10px">${escapeHTML(person.user_name)}</div><small style="color:#7189a9">${escapeHTML(clean)}</small></div>
+     <p>上のユーザーで間違いないか確認してください。友だちになるには相手の承認が必要です。</p>${button}`);
+ }catch(e){overlay(`<button class="sheet-close" onclick="closeModal()">${icon('close','small')}</button><h3 class="sheet-title">読み取りエラー</h3><p>${escapeHTML(e.message)}</p>`)}
+}
+lyraRememberIncomingQR();
+
 // Replace local demo entrypoints with the connected application.
 go=lyraGo;
 render=lyraPaint;
