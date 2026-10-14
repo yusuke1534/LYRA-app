@@ -866,7 +866,7 @@ function lyraTranslatedFragment(messageId){
 }
 async function lyraTranslateMessage(messageId,auto=false){
  if(!lyraUser)return;
- const msg=lyraRoomMessages.find(m=>m.id===messageId);if(!msg)return;
+ const msg=lyraRoomMessages.find(m=>m.id===messageId);if(!msg||['📷 写真','🎬 動画'].includes(msg.body))return;
  const src=lyraGuessLanguage(msg.body),target=lyraTranslateLang,peerId=lyraActivePeer;
  const key=lyraTranslationId(messageId);
  if(lyraTranslationCache.has(key)||lyraTranslationPending.has(key)|| (auto&&lyraTranslationFailures.has(key)))return;
@@ -890,7 +890,7 @@ function lyraRenderTranslations(){const root=document.getElementById('messageScr
 function lyraTranslateRecent(){
  if(!lyraTranslateAuto||!lyraUser||!lyraActivePeer)return;
  const source=lyraTranslateLang==='JA'?'EN':'JA';if(!lyraLocalReady.has(source+'-'+lyraTranslateLang))return;
- const pending=lyraRoomMessages.filter(m=>m.sender_id!==lyraUser.id&&lyraGuessLanguage(m.body)===source&&!lyraTranslationCache.has(lyraTranslationId(m.id))&&!lyraTranslationPending.has(lyraTranslationId(m.id))&&!lyraTranslationFailures.has(lyraTranslationId(m.id)));
+ const pending=lyraRoomMessages.filter(m=>m.sender_id!==lyraUser.id&&!['📷 写真','🎬 動画'].includes(m.body)&&lyraGuessLanguage(m.body)===source&&!lyraTranslationCache.has(lyraTranslationId(m.id))&&!lyraTranslationPending.has(lyraTranslationId(m.id))&&!lyraTranslationFailures.has(lyraTranslationId(m.id)));
  pending.slice(-2).forEach(m=>lyraTranslateMessage(m.id,true));
 }
 
@@ -901,7 +901,7 @@ function lyraRoom(){const c=lyraAccepted().find(c=>c.other_user_id===lyraActiveP
 }
 function lyraBubbleList(){return lyraRoomMessages.length?lyraRoomMessages.map(m=>{
  const key=lyraTranslationId(m.id),busy=lyraTranslationPending.has(key),ready=lyraTranslationCache.has(key),isMine=m.sender_id===lyraUser.id;
- return `<div class="msg ${isMine?'mine':''}">${!isMine?lyraAvatar(lyraAccepted().find(c=>c.other_user_id===lyraActivePeer)?.other_display_name,32,lyraActivePeer):''}<div class="lyra-msg-holder"><div class="msg-bubble">${escapeHTML(m.body)}${m.recalled_at?'':lyraTranslatedFragment(m.id)}</div><button class="lyra-translate-action" type="button" ${busy||!!m.recalled_at?'disabled':''} onclick="lyraTranslateMessage('${escapeHTML(m.id)}')">${m.recalled_at?'取り消し済み':busy?'翻訳中…':ready?'✓ 翻訳済み':'🌐 翻訳'}</button>${isMine&&!m.recalled_at?`<button class="lyra-translate-action" type="button" onclick="lyraRecallMessage('${escapeHTML(m.id)}')">↩ 送信取り消し</button>`:''}</div><span class="msg-time">${isMine&&m.read_at?'<span class="lyra-read-chip">既読</span>':''}${lyraFmtTime(m.created_at)}</span></div>`;
+ return `<div class="msg ${isMine?'mine':''}">${!isMine?lyraAvatar(lyraAccepted().find(c=>c.other_user_id===lyraActivePeer)?.other_display_name,32,lyraActivePeer):''}<div class="lyra-msg-holder"><div class="msg-bubble">${m.recalled_at?escapeHTML(m.body):(lyraMediaBubble(m,false)||escapeHTML(m.body))}${m.recalled_at||lyraMediaRows.has('d:'+m.id)?'':lyraTranslatedFragment(m.id)}</div><button class="lyra-translate-action" type="button" ${busy||!!m.recalled_at||['📷 写真','🎬 動画'].includes(m.body)?'disabled':''} onclick="lyraTranslateMessage('${escapeHTML(m.id)}')">${m.recalled_at?'取り消し済み':['📷 写真','🎬 動画'].includes(m.body)?'メディア':busy?'翻訳中…':ready?'✓ 翻訳済み':'🌐 翻訳'}</button>${isMine&&!m.recalled_at?`<button class="lyra-translate-action" type="button" onclick="lyraRecallMessage('${escapeHTML(m.id)}')">↩ 送信取り消し</button>`:''}</div><span class="msg-time">${isMine&&m.read_at?'<span class="lyra-read-chip">既読</span>':''}${lyraFmtTime(m.created_at)}</span></div>`;
  }).join(''):'<div class="live-chat-empty">チャットを始めましょう。<br>送ったメッセージは相手の端末にも届きます。</div>'}
 async function lyraRefreshRoom(){const id=lyraActivePeer,user=lyraUser;if(!id||!user||!lyraClient)return;let query=`and(sender_id.eq.${user.id},recipient_id.eq.${id}),and(sender_id.eq.${id},recipient_id.eq.${user.id})`;
  try{let {data,error}=await lyraClient.from('lyra_messages').select('id,sender_id,recipient_id,body,created_at,read_at,recalled_at').or(query).order('created_at',{ascending:false}).limit(200);if(error)throw error;if(id!==lyraActivePeer)return;lyraRoomMessages=(data||[]).reverse();let scroller=$('#messageScroller');if(scroller){scroller.innerHTML=lyraBubbleList();scrollBottom()}lyraTranslateRecent();if(view==='room'&&lyraRoomMessages.some(m=>m.recipient_id===user.id&&!m.read_at))lyraMarkRead(id)}
@@ -1542,7 +1542,7 @@ function lyraGroupBubbles(){
  if(!lyraGroupMessages.length)return '<div class="live-chat-empty">グループができました！<br>最初のメッセージを送りましょう。</div>';
  return lyraGroupMessages.map(m=>{
   const mine=m.sender_id===lyraUser?.id;
-  return `<div class="msg ${mine?'mine':''}">${!mine?lyraAvatar(m.sender_name,32,m.sender_id):''}<div class="lyra-msg-holder">${!mine?`<span class="lyra-g-sender">${escapeHTML(m.sender_name)}</span>`:''}<div class="msg-bubble">${escapeHTML(m.body)}</div></div><span class="msg-time">${lyraFmtTime(m.created_at)}</span></div>`;
+  return `<div class="msg ${mine?'mine':''}">${!mine?lyraAvatar(m.sender_name,32,m.sender_id):''}<div class="lyra-msg-holder">${!mine?`<span class="lyra-g-sender">${escapeHTML(m.sender_name)}</span>`:''}<div class="msg-bubble">${lyraMediaBubble(m,true)||escapeHTML(m.body)}</div></div><span class="msg-time">${lyraFmtTime(m.created_at)}</span></div>`;
  }).join('');
 }
 async function lyraGroupRefreshRoom(){
@@ -1985,5 +1985,168 @@ function lyraGlobalApplyEnglish(){const lang=document.getElementById('lyraGlobal
 document.addEventListener('keydown',e=>{if(e.key==='Escape')lyraGlobalClose()});
 </script>
 
+
+<!-- LYRA Photo & Video Chat Addon v1 -->
+<style>
+.lyra-media-hint{font-size:12px;line-height:1.65;color:#536e84;margin:12px 0}
+.lyra-media-video-pick{margin-top:10px;background:linear-gradient(135deg,#13a9ce,#1378dc)!important}
+.lyra-chat-media-img{display:block;max-width:min(270px,66vw);width:auto;max-height:310px;border-radius:13px;object-fit:contain;cursor:zoom-in;background:#ecf7ff}
+.lyra-chat-media-video{display:block;max-width:min(280px,68vw);width:100%;max-height:310px;border-radius:13px;background:#071e34}
+.lyra-media-loading{display:inline-block;min-width:100px;padding:8px 0;font-size:13px;opacity:.75}
+.lyra-media-lightbox{position:fixed;inset:0;background:#00182cde;z-index:100000;display:flex;align-items:center;justify-content:center;padding:65px 14px;box-sizing:border-box;cursor:zoom-out}
+.lyra-media-lightbox img{max-width:100%;max-height:85dvh;object-fit:contain;border-radius:12px}
+.lyra-media-lightbox button{position:absolute;top:20px;right:20px;border:0;border-radius:15px;background:white;color:#145383;padding:12px 16px;font-weight:bold}
+</style>
+<script>
+// LYRA Media v1: private photos & short videos in 1:1 and group chats.
+// Requires LYRA_MEDIA_SETUP.sql. No paid APIs or public bucket.
+const LYRA_MEDIA_BUCKET='lyra-media';
+const lyraMediaRows=new Map();
+const lyraMediaUrls=new Map();
+let lyraMediaUploading=false;
+
+function lyraMediaBubble(msg,group){
+ const info=lyraMediaRows.get((group?'g:':'d:')+msg.id);
+ if(!info)return '';
+ const signed=lyraMediaUrls.get(info.storage_path),valid=signed&&signed.expires>Date.now();
+ const iconText=info.media_kind==='photo'?'📷 写真':'🎬 動画';
+ if(!valid)return `<span class="lyra-media-loading">${iconText}を読み込み中…</span>`;
+ const src=escapeHTML(signed.url);
+ if(info.media_kind==='photo')return `<img class="lyra-chat-media-img" src="${src}" alt="送信された写真" loading="lazy" onclick="lyraMediaLightbox(this.src)" onerror="this.replaceWith(document.createTextNode('写真を表示できません。画面を更新してください'))">`;
+ return `<video class="lyra-chat-media-video" controls playsinline preload="none" src="${src}" aria-label="送信された動画">この環境では動画を再生できません。</video>`;
+}
+async function lyraMediaLoad(targetType,targetId){
+ if(!lyraClient||!lyraUser||!targetId)return;
+ const relevant=()=>targetType==='direct' ? view==='room'&&lyraActivePeer===targetId : view==='group_room'&&lyraGroupActive===targetId;
+ if(!relevant())return;
+ try{
+  const params={p_recipient:targetType==='direct'?targetId:null,p_group:targetType==='group'?targetId:null};
+  const {data,error}=await lyraClient.rpc('lyra_media_for_room',params);
+  if(error){console.warn('写真・動画の取得:',error.message);return;}
+  if(!relevant())return;
+  for(const key of [...lyraMediaRows.keys()])if(key.startsWith(targetType==='direct'?'d:':'g:'))lyraMediaRows.delete(key);
+  for(const row of data||[])lyraMediaRows.set((targetType==='direct'?'d:':'g:')+(targetType==='direct'?row.message_id:row.group_message_id),row);
+  const paths=[...new Set((data||[]).map(x=>x.storage_path).filter(path=>{
+   const prev=lyraMediaUrls.get(path);return !prev||prev.expires<Date.now()+45000;
+  }))].slice(0,100);
+  if(paths.length){
+   const {data:signed,error:signError}=await lyraClient.storage.from(LYRA_MEDIA_BUCKET).createSignedUrls(paths,600);
+   if(signError)console.warn('写真・動画の閲覧URL:',signError.message);
+   for(const entry of signed||[]){
+    if(entry?.signedUrl&&!entry.error)lyraMediaUrls.set(entry.path,{url:entry.signedUrl,expires:Date.now()+540000});
+   }
+  }
+  if(!relevant())return;
+  const scroller=document.getElementById('messageScroller');
+  if(scroller){const nearBottom=scroller.scrollHeight-scroller.scrollTop-scroller.clientHeight<190;
+   scroller.innerHTML=targetType==='direct'?lyraBubbleList():lyraGroupBubbles();
+   if(nearBottom)scrollBottom();}
+ }catch(err){console.warn('写真・動画の表示:',err)}
+}
+function lyraMediaLightbox(url){
+ if(!url)return;
+ const old=document.getElementById('lyraMediaViewer');if(old)old.remove();
+ const wrap=document.createElement('div');wrap.id='lyraMediaViewer';wrap.className='lyra-media-lightbox';
+ wrap.setAttribute('role','dialog');wrap.setAttribute('aria-label','写真を拡大表示');
+ const img=document.createElement('img');img.src=url;img.alt='写真の拡大表示';
+ const btn=document.createElement('button');btn.type='button';btn.textContent='閉じる ✕';btn.onclick=()=>wrap.remove();
+ wrap.onclick=(ev)=>{if(ev.target===wrap)wrap.remove()};wrap.append(img,btn);document.body.appendChild(wrap);
+}
+function lyraMediaChoose(){
+ if(!lyraUser||(view!=='room'&&view!=='group_room'))return lyraStatus('先にトークを開いてください');
+ if(lyraMediaUploading)return lyraStatus('アップロード中です。少しお待ちください');
+ overlay(`<button class="sheet-close" onclick="closeModal()">×</button><h3 class="sheet-title">写真・動画を送る</h3>
+ <p class="lyra-media-hint">写真は自動でJPEGへ圧縮（2MB以下）、動画は10MB以下。相手・グループ参加者だけが閲覧できます。</p>
+ <button class="primary-btn" type="button" onclick="lyraMediaPick('photo')">📷 写真を選ぶ</button>
+ <button class="primary-btn lyra-media-video-pick" type="button" onclick="lyraMediaPick('video')">🎬 動画を選ぶ</button>
+ <p class="lyra-media-hint">動画は圧縮しません。iPhoneの長い動画は容量制限を超えるため、短い動画を選んでください。送信後の保存にはSupabase無料枠を使用します。</p>`);
+}
+function lyraMediaPick(type){
+ const target=view==='room'?{type:'direct',id:lyraActivePeer}:view==='group_room'?{type:'group',id:lyraGroupActive}:null;
+ if(!target?.id)return lyraStatus('送信先が見つかりません');
+ const input=document.createElement('input');input.type='file';input.accept=type==='photo'?'image/*':'video/mp4,video/quicktime,video/webm,video/*';
+ input.style.display='none';input.setAttribute('aria-label',type==='photo'?'写真を選ぶ':'動画を選ぶ');
+ document.body.appendChild(input);
+ input.addEventListener('change',()=>{const file=input.files?.[0];input.remove();if(file)lyraMediaSend(file,type,target)}, {once:true});
+ closeModal();input.click();
+}
+async function lyraMediaCompressPhoto(file){
+ if(!file||!file.type.startsWith('image/'))throw Error('画像ファイルを選んでください');
+ if(file.size>20*1024*1024)throw Error('元の写真は20MB以下にしてください');
+ const url=URL.createObjectURL(file);
+ try{
+  const image=await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error('写真を読み込めません'));img.src=url});
+  const maxEdge=Math.max(image.naturalWidth,image.naturalHeight);
+  if(!maxEdge)throw Error('写真の大きさを確認できません');
+  const ratio=Math.min(1,1600/maxEdge);
+  const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(image.naturalWidth*ratio));canvas.height=Math.max(1,Math.round(image.naturalHeight*ratio));
+  const ctx=canvas.getContext('2d');if(!ctx)throw Error('写真の変換に失敗しました');ctx.drawImage(image,0,0,canvas.width,canvas.height);
+  let quality=.82,blob=null;
+  for(let i=0;i<4;i++){
+   blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality));
+   if(!blob)throw Error('写真をJPEGに変換できませんでした');
+   if(blob.size<=2*1024*1024)break;
+   quality=Math.max(.46,quality-.13);
+  }
+  if(blob.size>2*1024*1024)throw Error('写真を2MB以下に圧縮できませんでした');
+  return blob;
+ }finally{URL.revokeObjectURL(url)}
+}
+async function lyraMediaSend(file,type,target){
+ if(lyraMediaUploading||!lyraClient||!lyraUser)return;
+ if(target.type==='direct'&&lyraSafetyBlocked.has(target.id))return lyraStatus('ブロック中の相手には送れません');
+ lyraMediaUploading=true;let path=null,uploaded=false;
+ try{
+  let blob,mime,extension;
+  if(type==='photo'){
+   lyraStatus('写真を圧縮しています…');blob=await lyraMediaCompressPhoto(file);mime='image/jpeg';extension='jpg';
+  }else{
+   mime=String(file.type||'').toLowerCase();
+   if(!['video/mp4','video/quicktime','video/webm'].includes(mime)){
+    if(/\.mov$/i.test(file.name))mime='video/quicktime';
+    else if(/\.mp4$/i.test(file.name))mime='video/mp4';
+    else if(/\.webm$/i.test(file.name))mime='video/webm';
+    else throw Error('対応動画形式はMP4・MOV・WebMです');
+   }
+   if(file.size>10*1024*1024)throw Error('動画は10MB以下にしてください。短く編集してから送信してください');
+   if(!file.size)throw Error('空のファイルは送れません');
+   extension=mime==='video/quicktime'?'mov':mime==='video/webm'?'webm':'mp4';blob=file;
+  }
+  path=lyraUser.id+'/'+crypto.randomUUID()+'.'+extension;
+  lyraStatus('写真・動画をアップロードしています…');
+  const {error:uploadErr}=await lyraClient.storage.from(LYRA_MEDIA_BUCKET).upload(path,blob,{contentType:mime,upsert:false,cacheControl:'3600'});
+  if(uploadErr)throw uploadErr;uploaded=true;
+  const {data:sentId,error:sendErr}=await lyraClient.rpc('lyra_media_send',{
+   p_recipient:target.type==='direct'?target.id:null,p_group:target.type==='group'?target.id:null,
+   p_path:path,p_mime:mime,p_size:blob.size
+  });
+  if(sendErr)throw sendErr;
+  lyraStatus(type==='photo'?'写真を送信しました':'動画を送信しました');
+  if(target.type==='direct'){
+   if(sentId)lyraNotifyMessage(sentId).catch(()=>{});
+   if(view==='room'&&lyraActivePeer===target.id)await lyraRefreshRoom();
+   await lyraLoadConnections(false);
+  }else{
+   if(view==='group_room'&&lyraGroupActive===target.id)await lyraGroupRefreshRoom();
+   await lyraGroupLoad(false);
+  }
+ }catch(err){
+  lyraStatus('送信できませんでした：'+(err?.message||err));
+  if(uploaded&&path)lyraClient.storage.from(LYRA_MEDIA_BUCKET).remove([path]).catch(()=>{});
+ }finally{lyraMediaUploading=false}
+}
+
+// Preserve the existing screens; add media only to real online conversations.
+const lyraMediaOriginalRoom=lyraRoom;
+lyraRoom=function(){return lyraMediaOriginalRoom().replace('onclick="lyraStatus(\'写真送信は準備中です\')" aria-label="写真は準備中"',
+ 'onclick="lyraMediaChoose()" aria-label="写真または動画を送る"')};
+const lyraMediaOriginalGroupRoom=lyraGroupRoom;
+lyraGroupRoom=function(){return lyraMediaOriginalGroupRoom().replace('<form class="chat-composer" onsubmit="lyraGroupSend(event)"><textarea',
+ '<form class="chat-composer" onsubmit="lyraGroupSend(event)"><button type="button" class="compose-icon" aria-label="写真または動画を送る" onclick="lyraMediaChoose()">＋</button><textarea')};
+const lyraMediaOriginalDirectRefresh=lyraRefreshRoom;
+lyraRefreshRoom=async function(...args){const id=lyraActivePeer;await lyraMediaOriginalDirectRefresh(...args);if(id&&lyraActivePeer===id&&view==='room')await lyraMediaLoad('direct',id)};
+const lyraMediaOriginalGroupRefresh=lyraGroupRefreshRoom;
+lyraGroupRefreshRoom=async function(...args){const id=lyraGroupActive;await lyraMediaOriginalGroupRefresh(...args);if(id&&lyraGroupActive===id&&view==='group_room')await lyraMediaLoad('group',id)};
+</script>
 </body>
 </html>
