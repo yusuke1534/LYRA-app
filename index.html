@@ -102,6 +102,8 @@
 .lyra-local-setup:disabled{opacity:.6}.lyra-local-state{font-size:11px;color:#335a84;line-height:1.5}
 .lyra-local-err{font-size:11px;color:#a04836;margin:5px 0 2px;line-height:1.4}
 
+
+.lyra-safety-tools{padding:7px 12px;background:#f3f8fc;text-align:right}.lyra-safety-tools button{border:1px solid #bdd8ea;border-radius:10px;background:white;color:#23516a;padding:7px 11px;font-size:12px;cursor:pointer}
 </style>
 
 <style>
@@ -894,17 +896,56 @@ function lyraTranslateRecent(){
 
 function lyraRoom(){const c=lyraAccepted().find(c=>c.other_user_id===lyraActivePeer);if(!c)return '<p class="live-empty">この友だちは見つかりません。</p>';
  return `<div class="room"><header class="room-head"><button class="back" aria-label="戻る" onclick="go('talk')">${icon('back')}</button>${lyraAvatar(c.other_display_name,43,c.other_user_id)}<span class="room-title">${escapeHTML(c.other_display_name)}<small>LYRA チャット · 暗号化されたHTTPS通信</small></span></header>
- ${lyraTranslationTools()}<div class="messages" id="messageScroller">${lyraBubbleList()}</div>
+ <div class="lyra-safety-tools"><button type="button" onclick="lyraSafetyMenu()">🛡️ ブロック・通報</button></div>${lyraTranslationTools()}<div class="messages" id="messageScroller">${lyraBubbleList()}</div>
  <form class="chat-composer" onsubmit="lyraSendMessage(event)"><button type="button" class="compose-icon" onclick="lyraStatus('写真送信は準備中です')" aria-label="写真は準備中">${icon('plus')}</button><textarea id="messageInput" rows="1" maxlength="4000" placeholder="メッセージを入力" aria-label="メッセージ"></textarea><button id="lyraSendButton" class="send-btn" type="submit" aria-label="送信">${icon('send','small')}</button></form></div>`;
 }
 function lyraBubbleList(){return lyraRoomMessages.length?lyraRoomMessages.map(m=>{
  const key=lyraTranslationId(m.id),busy=lyraTranslationPending.has(key),ready=lyraTranslationCache.has(key),isMine=m.sender_id===lyraUser.id;
- return `<div class="msg ${isMine?'mine':''}">${!isMine?lyraAvatar(lyraAccepted().find(c=>c.other_user_id===lyraActivePeer)?.other_display_name,32,lyraActivePeer):''}<div class="lyra-msg-holder"><div class="msg-bubble">${escapeHTML(m.body)}${lyraTranslatedFragment(m.id)}</div><button class="lyra-translate-action" type="button" ${busy?'disabled':''} onclick="lyraTranslateMessage('${escapeHTML(m.id)}')">${busy?'翻訳中…':ready?'✓ 翻訳済み':'🌐 翻訳'}</button></div><span class="msg-time">${isMine&&m.read_at?'<span class="lyra-read-chip">既読</span>':''}${lyraFmtTime(m.created_at)}</span></div>`;
+ return `<div class="msg ${isMine?'mine':''}">${!isMine?lyraAvatar(lyraAccepted().find(c=>c.other_user_id===lyraActivePeer)?.other_display_name,32,lyraActivePeer):''}<div class="lyra-msg-holder"><div class="msg-bubble">${escapeHTML(m.body)}${m.recalled_at?'':lyraTranslatedFragment(m.id)}</div><button class="lyra-translate-action" type="button" ${busy||!!m.recalled_at?'disabled':''} onclick="lyraTranslateMessage('${escapeHTML(m.id)}')">${m.recalled_at?'取り消し済み':busy?'翻訳中…':ready?'✓ 翻訳済み':'🌐 翻訳'}</button>${isMine&&!m.recalled_at?`<button class="lyra-translate-action" type="button" onclick="lyraRecallMessage('${escapeHTML(m.id)}')">↩ 送信取り消し</button>`:''}</div><span class="msg-time">${isMine&&m.read_at?'<span class="lyra-read-chip">既読</span>':''}${lyraFmtTime(m.created_at)}</span></div>`;
  }).join(''):'<div class="live-chat-empty">チャットを始めましょう。<br>送ったメッセージは相手の端末にも届きます。</div>'}
 async function lyraRefreshRoom(){const id=lyraActivePeer,user=lyraUser;if(!id||!user||!lyraClient)return;let query=`and(sender_id.eq.${user.id},recipient_id.eq.${id}),and(sender_id.eq.${id},recipient_id.eq.${user.id})`;
- try{let {data,error}=await lyraClient.from('lyra_messages').select('id,sender_id,recipient_id,body,created_at,read_at').or(query).order('created_at',{ascending:false}).limit(200);if(error)throw error;if(id!==lyraActivePeer)return;lyraRoomMessages=(data||[]).reverse();let scroller=$('#messageScroller');if(scroller){scroller.innerHTML=lyraBubbleList();scrollBottom()}lyraTranslateRecent();if(view==='room'&&lyraRoomMessages.some(m=>m.recipient_id===user.id&&!m.read_at))lyraMarkRead(id)}
+ try{let {data,error}=await lyraClient.from('lyra_messages').select('id,sender_id,recipient_id,body,created_at,read_at,recalled_at').or(query).order('created_at',{ascending:false}).limit(200);if(error)throw error;if(id!==lyraActivePeer)return;lyraRoomMessages=(data||[]).reverse();let scroller=$('#messageScroller');if(scroller){scroller.innerHTML=lyraBubbleList();scrollBottom()}lyraTranslateRecent();if(view==='room'&&lyraRoomMessages.some(m=>m.recipient_id===user.id&&!m.read_at))lyraMarkRead(id)}
  catch(e){lyraStatus('メッセージ取得エラー: '+e.message)}}
-async function lyraSendMessage(event){event.preventDefault();if(lyraBusy||!lyraUser||!lyraActivePeer)return;const box=$('#messageInput');let message=box?.value.trim();if(!message)return;if(message.length>4000){lyraStatus('4000文字以内で送信してください');return}
+let lyraSafetyBlocked=new Set();
+async function lyraSafetyLoad(){
+ if(!lyraClient||!lyraUser)return;
+ try{const {data,error}=await lyraClient.rpc('lyra_safety_blocks');if(error)throw error;lyraSafetyBlocked=new Set((data||[]).map(x=>x.blocked_id));}
+ catch(e){console.warn('ブロック状態の取得:',e.message)}
+}
+function lyraSafetyMenu(){
+ if(!lyraActivePeer)return;
+ const blocked=lyraSafetyBlocked.has(lyraActivePeer);
+ overlay(`<button class="sheet-close" onclick="closeModal()">×</button><h3 class="sheet-title">安全・プライバシー</h3>
+ <p style="margin:12px 0;color:#52667c">ブロックするとお互いの個人チャット・友だち申請が制限されます。グループの投稿には適用されません。</p>
+ <button class="primary-btn" onclick="lyraSafetySetBlock(${!blocked})">${blocked?'ブロックを解除する':'このユーザーをブロック'}</button>
+ <button class="lyra-g-danger" onclick="lyraSafetyReportModal()">このユーザーを通報</button>`);
+}
+async function lyraSafetySetBlock(yes){
+ const peer=lyraActivePeer;if(!peer||!confirm(yes?'このユーザーをブロックしますか？':'ブロックを解除しますか？'))return;
+ try{const {error}=await lyraClient.rpc('lyra_safety_block',{p_user:peer,p_block:yes});if(error)throw error;
+ if(yes)lyraSafetyBlocked.add(peer);else lyraSafetyBlocked.delete(peer);
+ closeModal();lyraStatus(yes?'ブロックしました':'ブロックを解除しました');go('talk');await lyraLoadConnections();}
+ catch(e){lyraStatus('変更できません: '+e.message)}
+}
+function lyraSafetyReportModal(){
+ overlay(`<button class="sheet-close" onclick="closeModal()">×</button><h3 class="sheet-title">ユーザーを通報</h3>
+ <label class="field-label">理由</label><select class="field" id="lyraReportReason"><option value="spam">スパム・勧誘</option><option value="harassment">嫌がらせ</option><option value="impersonation">なりすまし</option><option value="other">その他</option></select>
+ <label class="field-label">詳細（任意・500文字まで）</label><textarea class="field" id="lyraReportDetails" maxlength="500" rows="3"></textarea>
+ <button class="primary-btn" onclick="lyraSafetySubmitReport()">通報を送信する</button><p style="font-size:12px;color:#64748b">通報は保存されますが、自動的に相手が停止されることはありません。</p>`);
+}
+async function lyraSafetySubmitReport(){
+ const peer=lyraActivePeer,reason=document.getElementById('lyraReportReason')?.value,details=document.getElementById('lyraReportDetails')?.value||'';
+ if(!peer)return;
+ try{const {error}=await lyraClient.rpc('lyra_safety_report',{p_user:peer,p_reason:reason,p_details:details});if(error)throw error;closeModal();lyraStatus('通報を受け付けました');}
+ catch(e){lyraStatus('通報できません: '+e.message)}
+}
+async function lyraRecallMessage(id){
+ if(!id||!confirm('このメッセージを送信取り消ししますか？相手がすでに読んだ内容や通知は取り消せません。'))return;
+ try{const {error}=await lyraClient.rpc('lyra_recall_message',{p_message:id});if(error)throw error;
+ lyraTranslationCache.clear();await lyraRefreshRoom();await lyraLoadConnections(false);lyraStatus('送信を取り消しました');}
+ catch(e){lyraStatus('取り消せません: '+e.message)}
+}
+async function lyraSendMessage(event){event.preventDefault();if(lyraBusy||!lyraUser||!lyraActivePeer)return;if(lyraSafetyBlocked.has(lyraActivePeer)){lyraStatus('ブロック中の相手には送信できません');return;}const box=$('#messageInput');let message=box?.value.trim();if(!message)return;if(message.length>4000){lyraStatus('4000文字以内で送信してください');return}
  lyraBusy=true;const send=$('#lyraSendButton');if(send)send.disabled=true;
  try{let {data:sent,error}=await lyraClient.from('lyra_messages').insert({recipient_id:lyraActivePeer,body:message}).select('id').single();if(error)throw error;box.value='';if(sent?.id)lyraNotifyMessage(sent.id).catch(e=>console.warn('新着通知をスキップ:',e));await lyraRefreshRoom();await lyraLoadConnections(false)}
  catch(e){lyraStatus('送信できませんでした: '+e.message)}finally{lyraBusy=false;if(send)send.disabled=false}}
@@ -914,7 +955,7 @@ async function lyraLoadConnections(paint=true){if(!lyraClient||!lyraUser||lyraRe
   if(lyraUser?.id!==current)return;
   lyraConnections=rows||[];
    await lyraFetchFriendAvatars();
-  const {data:recent,error:err}=await lyraClient.from('lyra_messages').select('sender_id,recipient_id,body,created_at').or(`sender_id.eq.${current},recipient_id.eq.${current}`).order('created_at',{ascending:false}).limit(150);
+  const {data:recent,error:err}=await lyraClient.from('lyra_messages').select('sender_id,recipient_id,body,created_at,recalled_at').or(`sender_id.eq.${current},recipient_id.eq.${current}`).order('created_at',{ascending:false}).limit(150);
   if(err)throw err;let mostRecent={};for(const m of recent||[]){let other=m.sender_id===current?m.recipient_id:m.sender_id;if(!mostRecent[other])mostRecent[other]=m}
   lyraLatest=mostRecent;
   const {data:unreadRows,error:unreadErr}=await lyraClient.rpc('lyra_unread_counts');
@@ -928,8 +969,9 @@ function lyraSubscribe(){if(!lyraClient||!lyraUser)return;let id=lyraUser.id;lyr
  const outgoing=lyraClient.channel('lyra_messages_out_'+id).on('postgres_changes',{event:'INSERT',schema:'public',table:'lyra_messages',filter:'sender_id=eq.'+id},changes).subscribe();
  const requests=lyraClient.channel('lyra_friends_in_'+id).on('postgres_changes',{event:'*',schema:'public',table:'lyra_connections',filter:'recipient_id=eq.'+id},()=>lyraLoadConnections()).subscribe();
  const requestsOut=lyraClient.channel('lyra_friends_out_'+id).on('postgres_changes',{event:'*',schema:'public',table:'lyra_connections',filter:'requester_id=eq.'+id},()=>lyraLoadConnections()).subscribe();
+ const recalls=lyraClient.channel('lyra_recalls_'+id).on('postgres_changes',{event:'UPDATE',schema:'public',table:'lyra_messages',filter:'recipient_id=eq.'+id},changes).subscribe();
  const receipts=lyraClient.channel('lyra_read_receipts_'+id).on('postgres_changes',{event:'UPDATE',schema:'public',table:'lyra_messages',filter:'sender_id=eq.'+id},()=>{if(lyraUser?.id!==id)return;if(view==='room')lyraRefreshRoom();else lyraLoadConnections()}).subscribe();
- lyraChannel=[incoming,outgoing,requests,requestsOut,receipts];
+ lyraChannel=[incoming,outgoing,requests,requestsOut,receipts,recalls];
  // Keep in sync after browser backgrounding or if a realtime websocket is disconnected.
  lyraPoll=setInterval(()=>{if(!document.hidden){lyraLoadConnections(view!=='room');if(view==='room')lyraRefreshRoom()}},45000);
 }
@@ -1573,7 +1615,7 @@ const lyraGroupOriginalApplySession=lyraApplySession;
 lyraApplySession=async function(user){
  if(!user){lyraGroupStopRealtime();if(lyraGroupPoll)clearInterval(lyraGroupPoll);lyraGroupPoll=null;
   lyraGroups=[];lyraGroupActive=null;lyraGroupMessages=[];lyraGroupPeople=[];lyraGroupSession=null;}
- await lyraGroupOriginalApplySession(user);
+ await lyraGroupOriginalApplySession(user);if(user)await lyraSafetyLoad();else lyraSafetyBlocked.clear();
  if(user&&lyraUser?.id===user.id&&lyraProfile){
   if(lyraGroupSession!==user.id){lyraGroupSession=user.id;await lyraGroupLoad(true);}
   if(!lyraGroupPoll)lyraGroupPoll=setInterval(async()=>{
