@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="lyra-build" content="20261015-together-v1-free-groups-desktop">
+<meta name="lyra-build" content="20261015-together-plus-rsvp-expenses-checklist-reminders">
 <meta name="theme-color" content="#eaf8ff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -364,6 +364,8 @@
 @media(min-width:820px){body.lyra-desktop-signed-in .lyra-together-page{max-width:1060px;margin:0 auto;padding:35px 36px 90px!important;} body.lyra-desktop-signed-in .lyra-t-list{grid-template-columns:repeat(auto-fit,minmax(330px,1fr));align-items:start;}body.lyra-desktop-signed-in .lyra-t-heading h2{font-size:34px;}body.lyra-desktop-signed-in .lyra-t-cta{padding:23px 27px;}}
 
 </style>
+
+<style id="lyra-together-plus-style">.lyra-plus{margin:22px 0;padding:17px;background:#eef8ff;border:1px solid #b9e2ff;border-radius:17px;color:#16416a}.lyra-plus h3{margin:17px 0 8px;font-size:17px}.lyra-plus h3:first-child{margin-top:0}.lyra-plus p{line-height:1.6;margin:5px 0}.lyra-plus small{font-size:11px;color:#52738d;line-height:1.4}.lyra-plus-row{display:flex;gap:7px;flex-wrap:wrap}.lyra-plus-chip,.lyra-plus-form button{padding:9px 12px;border-radius:12px;border:1px solid #98d1ef;background:white;color:#0877ae;font-weight:700}.lyra-plus-chip.active{background:#118fe3;color:#fff}.lyra-plus-list{list-style:none;padding:0;margin:10px 0}.lyra-plus-list li{padding:9px 0;border-bottom:1px solid #d2e9fa;overflow-wrap:anywhere}.lyra-plus-list button{margin-left:8px;color:#a53b3b}.lyra-plus-form{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}.lyra-plus-form input{min-width:100px;flex:1 1 120px}.lyra-plus-form button{background:#168fe1;color:white;flex:0 0 auto}</style>
 </head>
 <body>
 <div class="ambient"><div class="orb one"></div><div class="orb two"></div><div class="orb three"></div></div>
@@ -1634,6 +1636,7 @@ function lyraTogetherCard(e){
     <button type="button" onclick="lyraTogetherShare('${e.event_id}')">予定を共有</button>
     ${owned&&e.status!=='canceled'?`<button type="button" onclick="lyraTogetherPlace('${e.event_id}')">場所を編集</button>`:''}
    </div>
+   ${lyraPlusPanel(e.event_id)}
    <h3>参加者</h3><p class="lyra-t-people">${escapeHTML(participants.map(p=>p.name+(p.user_id===e.owner_id?'（主催）':'')).join('、'))}</p>
    ${owned&&e.status!=='canceled'?`<button type="button" class="lyra-t-danger" onclick="lyraTogetherCancel('${e.event_id}')">予定を中止する</button>`:''}
   </div>`:''}
@@ -1670,7 +1673,7 @@ async function lyraTogetherLoad(force=false){
   const {data,error}=await lyraClient.rpc('lyra_together_list');
   if(error)throw error;
   if(lyraUser?.id!==account)return;
-  lyraTogetherEvents=data||[];lyraTogetherLoaded=true;
+  lyraTogetherEvents=data||[];lyraTogetherLoaded=true;lyraPlusCheckReminders();
  }catch(e){lyraTogetherError=lyraTogetherErrorText(e);lyraTogetherLoaded=true;}
  finally{lyraTogetherBusy=false;if(view==='together'&&lyraUser?.id===account)lyraPaint();}
 }
@@ -1789,6 +1792,52 @@ async function lyraTogetherShare(eventId){
  const content=`🗓 LYRA Together：${e.title}\n${selected?'日時：'+lyraTogetherTime(selected.start_at):'日程は投票で調整中'}\n${e.meeting_place?'場所：'+e.meeting_place:''}\n${e.meeting_address?'住所：'+e.meeting_address:''}\n※詳しくはLYRAの「みんなで」へ（招待された人のみ閲覧できます）`;
  try{if(navigator.share)await navigator.share({text:content});else if(navigator.clipboard){await navigator.clipboard.writeText(content);lyraStatus('予定をコピーしました');}else overlay(`<h3 class="sheet-title">予定の共有</h3><textarea class="field" rows="6" readonly onclick="this.select()">${escapeHTML(content)}</textarea><button class="primary-btn" onclick="closeModal()">閉じる</button>`)}catch(e){if(e?.name!=='AbortError')lyraStatus('共有できませんでした');}
 }
+
+// LYRA Together+ : shared RSVP, expenses, checklist, and free local reminders.
+const lyraPlusCache=new Map();
+let lyraPlusUser=null;
+function lyraPlusReset(){lyraPlusCache.clear();lyraPlusUser=lyraUser?.id||null;}
+function lyraPlusIfAccount(){if(lyraPlusUser!==(lyraUser?.id||null))lyraPlusReset();}
+async function lyraPlusLoad(eventId){
+ lyraPlusIfAccount();if(!lyraUser||!lyraTogetherUUID(eventId))return;
+ try{const {data,error}=await lyraClient.rpc('lyra_together_plus_state',{p_event:eventId});if(error)throw error;
+ lyraPlusCache.set(eventId,data||{});if(view==='together')lyraPaint();
+ }catch(e){lyraStatus('Together+の読み込みに失敗: '+lyraTogetherErrorText(e));}
+}
+async function lyraPlusAction(rpc,args,eventId){
+ try{const {error}=await lyraClient.rpc(rpc,args);if(error)throw error;await lyraPlusLoad(eventId);lyraStatus('保存しました');}
+ catch(e){lyraStatus('保存できません: '+lyraTogetherErrorText(e));}
+}
+function lyraPlusPanel(eventId){
+ const e=lyraTogetherEvents.find(x=>x.event_id===eventId);if(!e)return '';
+ const s=lyraPlusCache.get(eventId);if(!s)return `<div class="lyra-plus"><h3>みんなで＋</h3><button class="lyra-t-add" onclick="lyraPlusLoad('${eventId}')">出欠・割り勘・リストを読み込む</button></div>`;
+ const rsvps=s.rsvps||[],tasks=s.tasks||[],expenses=s.expenses||[];
+ const me=rsvps.find(x=>x.user_id===lyraUser?.id)?.answer||'';
+ const counts={yes:rsvps.filter(x=>x.answer==='yes').length,no:rsvps.filter(x=>x.answer==='no').length,maybe:rsvps.filter(x=>x.answer==='maybe').length};
+ const attendees=rsvps.filter(x=>x.answer==='yes').length;
+ const people=Math.max(1,attendees||Number(e.participant_count)||1);
+ const amount=expenses.reduce((a,x)=>a+Number(x.amount_yen||0),0);
+ const money=n=>Math.floor(n).toLocaleString('ja-JP')+'円';
+ const picked=(e.options||[]).find(x=>x.id===e.final_option_id);
+ return `<section class="lyra-plus"><h3>🙋 出欠確認</h3><p>参加 ${counts.yes}人 ・ 不参加 ${counts.no}人 ・ 未定 ${counts.maybe}人（未回答 ${Math.max(0,Number(e.participant_count)-rsvps.length)}人）</p>
+ <div class="lyra-plus-row">${[['yes','参加'],['maybe','未定'],['no','不参加']].map(([a,t])=>`<button class="lyra-plus-chip ${me===a?'active':''}" onclick="lyraPlusAction('lyra_together_plus_rsvp',{p_event:'${eventId}',p_answer:'${a}'},'${eventId}')">${t}</button>`).join('')}</div>
+ <h3>💴 割り勘メモ</h3><p>合計 <b>${money(amount)}</b> / ${people}人で均等割り：<b>約${money(Math.ceil(amount/people))}/人</b></p><small>「参加」の回答者を優先して計算。誰も回答していない場合は全参加者数で概算。精算・送金は行いません。</small>
+ <ul class="lyra-plus-list">${expenses.map(x=>`<li>${escapeHTML(x.label)}：${money(x.amount_yen)} ${x.paid_by===lyraUser?.id||e.owner_id===lyraUser?.id?`<button onclick="lyraPlusAction('lyra_together_plus_expense_delete',{p_event:'${eventId}',p_expense:'${x.id}'},'${eventId}')">削除</button>`:''}</li>`).join('')}</ul>
+ <form class="lyra-plus-form" onsubmit="lyraPlusAddExpense(event,'${eventId}')"><input class="field" name="label" placeholder="費用（例：食事代）" maxlength="80" required><input class="field" name="amount" type="number" min="1" max="10000000" step="1" inputmode="numeric" placeholder="円" required><button type="submit">費用を追加</button></form>
+ <h3>☑️ 共有チェックリスト</h3><ul class="lyra-plus-list">${tasks.map(x=>`<li><label><input type="checkbox" ${x.done?'checked':''} onchange="lyraPlusAction('lyra_together_plus_task_toggle',{p_event:'${eventId}',p_task:'${x.id}',p_done:this.checked},'${eventId}')"> ${escapeHTML(x.title)}</label></li>`).join('')}</ul>
+ <form class="lyra-plus-form" onsubmit="lyraPlusAddTask(event,'${eventId}')"><input class="field" name="title" maxlength="100" placeholder="例：飲み物を持っていく" required><button type="submit">追加</button></form>
+ <h3>⏰ 予定リマインダー</h3>${picked?`<p>確定日時：${escapeHTML(lyraTogetherTime(picked.start_at))}</p><div class="lyra-plus-row"><button class="lyra-plus-chip" onclick="lyraPlusReminder('${eventId}',24)">1日前に知らせる</button><button class="lyra-plus-chip" onclick="lyraPlusReminder('${eventId}',1)">1時間前に知らせる</button><button class="lyra-plus-chip" onclick="lyraPlusCalendar('${eventId}')">カレンダーに登録</button></div><small>LYRAを開いたときのアプリ内案内です。閉じている間の自動プッシュ通知ではありません。</small>`:'<p>日程確定後、リマインダーを設定できます。</p>'}</section>`;
+}
+async function lyraPlusAddTask(ev,id){ev.preventDefault();const inp=ev.target.elements.title;const val=inp.value.trim();if(!val)return;inp.value='';await lyraPlusAction('lyra_together_plus_task_add',{p_event:id,p_title:val},id);}
+async function lyraPlusAddExpense(ev,id){ev.preventDefault();const f=ev.target;const label=f.elements.label.value.trim(),amount=Number(f.elements.amount.value);if(!label||!Number.isSafeInteger(amount)||amount<1||amount>1e7)return lyraStatus('金額を確認してください');f.reset();await lyraPlusAction('lyra_together_plus_expense_add',{p_event:id,p_label:label,p_amount:amount},id);}
+function lyraPlusReminder(id,hours){const e=lyraTogetherEvents.find(x=>x.event_id===id);const o=(e?.options||[]).find(x=>x.id===e.final_option_id);if(!o)return;const key='lyra-reminder-'+lyraUser?.id+'-'+id;localStorage.setItem(key,JSON.stringify({at:o.start_at,title:e.title,hours,shown:false}));lyraStatus('リマインダーを設定しました（LYRA起動時に確認）');}
+function lyraPlusCheckReminders(){if(!lyraUser)return;for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k?.startsWith('lyra-reminder-'+lyraUser.id+'-'))continue;try{const r=JSON.parse(localStorage.getItem(k));const d=new Date(r.at).getTime()-Date.now();if(!r.shown&&d<=r.hours*3600000&&d>0){r.shown=true;localStorage.setItem(k,JSON.stringify(r));lyraStatus('⏰ 予定が近づいています：'+r.title);}}catch(_){}}}
+function lyraPlusCalendar(id){const e=lyraTogetherEvents.find(x=>x.event_id===id);const o=(e?.options||[]).find(x=>x.id===e.final_option_id);if(!o)return;const stamp=d=>new Date(d).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');const clean=s=>String(s||'').replace(/[\\,;]/g,' ').replace(/\r?\n/g,' ');const start=new Date(o.start_at),end=new Date(start.getTime()+3600000);const ics='BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//LYRA//Together//JA\r\nBEGIN:VEVENT\r\nUID:'+id+'@lyra.local\r\nDTSTAMP:'+stamp(new Date())+'\r\nDTSTART:'+stamp(start)+'\r\nDTEND:'+stamp(end)+'\r\nSUMMARY:'+clean(e.title)+'\r\nLOCATION:'+clean(e.meeting_address||e.meeting_place)+'\r\nBEGIN:VALARM\r\nTRIGGER:-P1D\r\nACTION:DISPLAY\r\nDESCRIPTION:LYRA Together\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR';const url=URL.createObjectURL(new Blob([ics],{type:'text/calendar;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='LYRA_Together.ics';a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);}
+const lyraPlusOriginalExpand=lyraTogetherExpand;
+lyraTogetherExpand=function(id){lyraPlusOriginalExpand(id);if(lyraTogetherActive===id)lyraPlusLoad(id);};
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)lyraPlusCheckReminders();});
+lyraPlusCheckReminders();
+
 // Open a planning sheet right from a group conversation.
 // go('together') is connected to the existing menu and is tracked without polling other tabs.
 const lyraTogetherPreviousGo=go;
