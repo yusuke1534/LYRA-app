@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="lyra-build" content="20261014-groups-v1-fav-avatar-translate-read">
+<meta name="lyra-build" content="20261014-desktop-after-login-v1-groups-read">
 <meta name="theme-color" content="#eaf8ff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -222,6 +222,105 @@
 .lyra-g-subhead{color:#193e71;margin:14px 0 6px;font-size:14px}
 .lyra-g-danger{width:100%;border:1px solid #ffd1cf;background:#fff3f3;color:#b53535;border-radius:14px;padding:13px;margin-top:17px;font-weight:700}
 
+</style>
+
+<style id="lyra-desktop-after-signin">
+/* LYRA desktop layout starts only after actual Supabase login and profile load.
+   The public landing page and all mobile layouts remain unchanged. */
+@media (min-width:820px) and (min-height:550px) {
+ body.lyra-desktop-signed-in {
+   width:100%;height:100dvh;overflow:hidden;
+   background:#f2f9ff;
+ }
+ body.lyra-desktop-signed-in > .ambient,
+ body.lyra-desktop-signed-in .side-left,
+ body.lyra-desktop-signed-in .side-right {display:none!important}
+ body.lyra-desktop-signed-in .landing {
+   display:block!important;width:100%;max-width:none;
+   height:100dvh;min-height:0;margin:0;padding:0;
+ }
+ body.lyra-desktop-signed-in .phone {
+   display:grid;grid-template-columns:clamp(202px,19vw,270px) minmax(0,1fr);
+   grid-template-rows:78px minmax(0,1fr);
+   width:100%;height:100dvh;min-height:0;max-height:none;
+   margin:0;padding:0;border:none;outline:none;border-radius:0;
+   box-shadow:none;overflow:hidden;background:#f8fcff;
+ }
+ body.lyra-desktop-signed-in .phone:before,
+ body.lyra-desktop-signed-in .home-indicator{display:none!important}
+ body.lyra-desktop-signed-in .phone-head {
+   grid-column:1/-1;grid-row:1;min-width:0;min-height:0;
+   height:78px;flex:none;padding:0 30px;gap:14px;
+   border-bottom:1px solid #e0edf7;background:#fff;
+   box-shadow:0 2px 12px #2b8ad10b;
+ }
+ body.lyra-desktop-signed-in .head-logo {width:70px;height:59px}
+ body.lyra-desktop-signed-in .head-wordmark {font-size:30px}
+ body.lyra-desktop-signed-in .bottom-nav {
+   grid-column:1;grid-row:2;min-width:0;min-height:0;
+   display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;
+   gap:8px;width:100%;height:100%;flex:none;
+   margin:0;padding:26px 13px;
+   background:linear-gradient(160deg,#fff 10%,#eaf7ff 100%);
+   border-right:1px solid #dfeff9;border-radius:0;box-shadow:none;
+   overflow-y:auto;
+ }
+ body.lyra-desktop-signed-in .bottom-nav .nav-item {
+   flex:0 0 auto;min-height:56px;min-width:0;
+   display:flex;flex-direction:row;justify-content:flex-start;align-items:center;
+   gap:16px;padding:12px 20px;text-align:left;
+   border-radius:15px;font-size:15px;font-weight:600;
+   color:#486c98;transition:background .15s ease,color .15s ease;
+ }
+ body.lyra-desktop-signed-in .bottom-nav .nav-item .icon {width:24px;height:24px}
+ body.lyra-desktop-signed-in .bottom-nav .nav-item.active {color:#087bfa;background:#dfedff;font-weight:800}
+ body.lyra-desktop-signed-in .bottom-nav .nav-item.active:before {display:none}
+ body.lyra-desktop-signed-in .bottom-nav .nav-item:hover {background:#e9f4ff}
+ body.lyra-desktop-signed-in .bottom-nav .nav-item i {left:36px;top:12px}
+ body.lyra-desktop-signed-in .phone-main {
+   grid-column:2;grid-row:2;min-width:0;min-height:0;
+   width:100%;height:100%;max-height:100%;flex:none;
+   background:linear-gradient(180deg,#fff 0%,#f5faff 100%);
+   overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;
+   scrollbar-color:#bedaf1 transparent;
+ }
+ body.lyra-desktop-signed-in .home-view,
+ body.lyra-desktop-signed-in .screen-pad {
+   max-width:1370px;width:100%;margin:0 auto;
+   padding:26px clamp(25px,4vw,70px) 65px;
+ }
+ body.lyra-desktop-signed-in .home-view .hero {height:205px;margin-bottom:29px;padding:32px 38px}
+ body.lyra-desktop-signed-in .home-view .hero-title {font-size:27px}
+ body.lyra-desktop-signed-in .home-view .hero-detail {font-size:14px}
+ body.lyra-desktop-signed-in .favorites {gap:22px;padding:7px 0 13px}
+ body.lyra-desktop-signed-in .chat-list,
+ body.lyra-desktop-signed-in #filteredChats {
+   display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));
+   gap:14px;align-items:start;
+ }
+ body.lyra-desktop-signed-in .chat-list .chat-item,
+ body.lyra-desktop-signed-in #filteredChats .chat-item,
+ body.lyra-desktop-signed-in #filteredChats .lyra-g-row {
+   border:1px solid #e1edf9;border-radius:20px;
+   padding:14px;background:white;box-shadow:0 5px 20px #5b98c20d;
+ }
+ body.lyra-desktop-signed-in .room {width:100%;height:100%;min-height:0}
+ body.lyra-desktop-signed-in .room-head {padding:15px 30px;min-height:76px}
+ body.lyra-desktop-signed-in .messages {padding:25px clamp(26px,5vw,95px)}
+ body.lyra-desktop-signed-in .msg-bubble {max-width:min(660px,75%);font-size:15px}
+ body.lyra-desktop-signed-in .lyra-group-room .msg .lyra-msg-holder {max-width:min(660px,75%)}
+ body.lyra-desktop-signed-in .chat-composer {padding:15px clamp(26px,5vw,95px);gap:12px}
+ body.lyra-desktop-signed-in .chat-composer textarea {min-height:47px;font-size:15px}
+ body.lyra-desktop-signed-in .modal-layer {align-items:center}
+ body.lyra-desktop-signed-in .sheet {width:min(560px,92vw);max-height:86vh;border-radius:25px;padding:27px 30px;box-shadow:0 20px 80px #0e294344}
+ body.lyra-desktop-signed-in .phone > #overlayRoot,
+ body.lyra-desktop-signed-in .phone > #toastRoot {
+   position:absolute;inset:0;z-index:21;pointer-events:none;
+ }
+ body.lyra-desktop-signed-in .phone > #overlayRoot > * {pointer-events:auto}
+ body.lyra-desktop-signed-in .phone > #toastRoot {z-index:31}
+ body.lyra-desktop-signed-in .toast {left:auto;right:24px;bottom:22px;max-width:360px}
+}
 </style>
 </head>
 <body>
@@ -1561,6 +1660,44 @@ lyraApplySession=async function(user){
 // Refresh group list immediately when the app is brought to the foreground.
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&lyraUser&&lyraProfile){lyraGroupLoad(view==='talk'||view==='home');if(view==='group_room')lyraGroupRefreshRoom()}});
 
+</script>
+
+<script id="lyra-desktop-after-signin-script">
+/* Keep the introductory artwork before login; turn it into a desktop app only
+   once Supabase auth + profile are ready. No extra API calls, no account changes. */
+(function(){
+  const desktopQuery=window.matchMedia('(min-width:820px) and (min-height:550px)');
+  const paintBeforeDesktop=lyraPaint;
+  function syncDesktop(){
+    const signedIn=Boolean(lyraUser && lyraProfile);
+    document.body.classList.toggle('lyra-desktop-signed-in',signedIn);
+    if(!signedIn || !desktopQuery.matches)return;
+    // Normally these already exist. Chat rooms hide both on phones, but
+    // the PC variant keeps the regular menu and app header visible.
+    if(view==='room' || view==='group_room'){
+      const header=document.getElementById('phoneHeader');
+      const nav=document.getElementById('bottomNav');
+      if(header){
+        header.innerHTML=`<img class="head-logo" src="${pic('lyra-logo')}" alt="LYRA"><span class="head-wordmark">LYRA</span><span class="head-spacer"></span><button class="round-btn" aria-label="友だちを探す" onclick="lyraSearch()">${icon('search')}</button>${lyraAvatarHead()}<button class="round-btn" aria-label="設定" onclick="lyraSettings()">${icon('settings')}</button>`;
+        header.classList.remove('hide');
+      }
+      if(nav){
+        nav.innerHTML=menus.map(([id,ico,label])=>`<button class="nav-item ${id==='talk'?'active':''}" onclick="go('${id}')">${icon(ico)}${label}${id==='talk'&&Object.values(lyraUnreadCounts).some(n=>n>0)?'<i></i>':''}</button>`).join('');
+        nav.classList.remove('hide');
+      }
+    }
+  }
+  lyraPaint=function(){paintBeforeDesktop();syncDesktop();};
+  render=lyraPaint;
+  // Responsive switch: rotate/resize without leaving a stray phone header.
+  if(desktopQuery.addEventListener)desktopQuery.addEventListener('change',()=>{
+    if(lyraUser && lyraProfile)lyraPaint();
+  });
+  else if(desktopQuery.addListener)desktopQuery.addListener(()=>{
+    if(lyraUser && lyraProfile)lyraPaint();
+  });
+  syncDesktop();
+})();
 </script>
 </body>
 </html>
