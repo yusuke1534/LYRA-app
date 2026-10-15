@@ -104,6 +104,17 @@
 
 
 .lyra-safety-tools{padding:7px 12px;background:#f3f8fc;text-align:right}.lyra-safety-tools button{border:1px solid #bdd8ea;border-radius:10px;background:white;color:#23516a;padding:7px 11px;font-size:12px;cursor:pointer}
+
+/* Main LYRA tabs: persistent header/footer, scrollable content only. */
+#app{display:flex;flex-direction:column;overflow:hidden;}
+#app > #phoneHeader:not(.hide){position:relative;z-index:15;flex-shrink:0;}
+#app > #screenContent{flex:1 1 0;min-height:0;overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;}
+#app > #bottomNav:not(.hide){position:relative;z-index:15;flex-shrink:0;}
+@media(max-width:700px){
+ #app{height:100dvh;max-height:100dvh;}
+ #app > #phoneHeader:not(.hide){flex:0 0 calc(72px + env(safe-area-inset-top));}
+ #app > #bottomNav:not(.hide){flex:0 0 83px;}
+}
 </style>
 
 <style>
