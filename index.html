@@ -2126,7 +2126,11 @@ async function lyraMediaSend(file,type,target){
    throw Error('実ユーザーの送信許可を確認できません: '+canUploadError.message);
   }
   if(canUpload!==true){
-   throw Error('実ユーザーのアップロード判定が拒否されました（false）。権限関数・ユーザー認証を確認する必要があります');
+   // Query a server-side reason code, not a secret/token or the user's file path.
+   const {data:reason,error:reasonErr}=await lyraClient.rpc('lyra_media_upload_reason',{p_path:path});
+   const codes={NOT_AUTHENTICATED:'認証セッションがAPIに届いていません',PATH_INVALID:'保存パスの形式が不正です',NOT_OWN_FOLDER:'本人の保存フォルダと一致しません',FILENAME_INVALID:'ファイル名の形式が不正です',FILE_LIMIT:'1人50件の保存上限です',USER_SIZE_LIMIT:'1人80MBの保存上限です',GLOBAL_SIZE_LIMIT:'全体500MBの保存上限です',OK:'追加ポリシーによって拒否されています'};
+   const why=reasonErr?'判定詳細の取得に失敗: '+reasonErr.message:(codes[reason]||'原因未確定');
+   throw Error('アップロード許可はfalseです。判定結果: '+(reason||'不明')+'（'+why+'）');
   }
   mediaStep='① Supabase Storageへのアップロード（許可関数はtrue）';
   lyraStatus('送信許可OK。写真・動画をアップロードしています…');
