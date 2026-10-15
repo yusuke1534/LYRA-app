@@ -1986,8 +1986,19 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')lyraGlobalClose()});
 </script>
 
 
-<!-- LYRA Photo & Video Chat Addon v1 -->
+<!-- LYRA Photo & Video Chat Addon v2: browser-local video compression -->
 <style>
+
+/* LYRA video compression: app-controlled, no remote conversion */
+.lyra-video-work{position:fixed;inset:0;z-index:100200;background:#081e34b8;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box}
+.lyra-video-work-card{box-sizing:border-box;width:min(430px,96vw);max-height:91dvh;overflow:auto;padding:22px;border-radius:22px;background:#fff;color:#173952;box-shadow:0 16px 44px #001c354a}
+.lyra-video-work-card h3{font-size:19px;margin:0 0 12px}.lyra-video-work-card p{font-size:14px;line-height:1.7;margin:9px 0}
+.lyra-video-work-card progress{width:100%;height:15px;accent-color:#168bdf}
+.lyra-video-work-card .lyra-video-small{font-size:12px;color:#5b7183}
+.lyra-video-abort,.lyra-video-approve{border:0;border-radius:13px;padding:12px 15px;font-size:14px;font-weight:700;cursor:pointer}
+.lyra-video-abort{background:#eaf3f8;color:#214667}.lyra-video-approve{background:#118ae6;color:#fff}
+.lyra-video-preview{width:100%;border-radius:12px;max-height:48dvh;background:#10202c}
+.lyra-video-confirm-actions{display:flex;gap:10px;margin-top:14px;justify-content:flex-end}
 .lyra-media-hint{font-size:12px;line-height:1.65;color:#536e84;margin:12px 0}
 .lyra-media-video-pick{margin-top:10px;background:linear-gradient(135deg,#13a9ce,#1378dc)!important}
 .lyra-chat-media-img{display:block;max-width:min(270px,66vw);width:auto;max-height:310px;border-radius:13px;object-fit:contain;cursor:zoom-in;background:#ecf7ff}
@@ -2056,10 +2067,10 @@ function lyraMediaChoose(){
  if(!lyraUser||(view!=='room'&&view!=='group_room'))return lyraStatus('先にトークを開いてください');
  if(lyraMediaUploading)return lyraStatus('アップロード中です。少しお待ちください');
  overlay(`<button class="sheet-close" onclick="closeModal()">×</button><h3 class="sheet-title">写真・動画を送る</h3>
- <p class="lyra-media-hint">写真は自動でJPEGへ圧縮（2MB以下）、動画は10MB以下。相手・グループ参加者だけが閲覧できます。</p>
+ <p class="lyra-media-hint">写真は自動でJPEGへ圧縮（2MB以下）、動画は10MBを超える場合、対応端末で自動圧縮を試みます。相手・グループ参加者だけが閲覧できます。</p>
  <button class="primary-btn" type="button" onclick="lyraMediaPick('photo')">📷 写真を選ぶ</button>
  <button class="primary-btn lyra-media-video-pick" type="button" onclick="lyraMediaPick('video')">🎬 動画を選ぶ</button>
- <p class="lyra-media-hint">動画は圧縮しません。iPhoneの長い動画は容量制限を超えるため、短い動画を選んでください。送信後の保存にはSupabase無料枠を使用します。</p>`);
+ <p class="lyra-media-hint">10MB超の動画は端末内で圧縮を試します（最大60秒）。圧縮には動画と同程度の時間がかかる場合があります。端末が対応しない場合は短く編集してください。音声も送信前に確認できます。外部の有料APIは使用しません。</p>`);
 }
 function lyraMediaPick(type){
  const target=view==='room'?{type:'direct',id:lyraActivePeer}:view==='group_room'?{type:'group',id:lyraGroupActive}:null;
@@ -2092,6 +2103,184 @@ async function lyraMediaCompressPhoto(file){
   return blob;
  }finally{URL.revokeObjectURL(url)}
 }
+
+// Video over 10MB: recompress locally when supported. No ffmpeg.wasm downloads and no paid API.
+// Some iOS Safari versions do not support recording from canvas; they receive a clear fallback message.
+const LYRA_VIDEO_MAX_SECONDS=60;
+let lyraVideoAbortController=null;
+function lyraVideoBytes(bytes){return (bytes/1024/1024).toFixed(1)+'MB'}
+function lyraVideoCompressionPanel(){
+ const cover=document.createElement('div');cover.id='lyraVideoCompressionCover';cover.className='lyra-video-work';
+ cover.setAttribute('role','status');cover.setAttribute('aria-live','polite');
+ const card=document.createElement('section');card.className='lyra-video-work-card';
+ const heading=document.createElement('h3');heading.textContent='🎬 動画を圧縮しています';
+ const note=document.createElement('p');note.id='lyraVideoProgressText';note.textContent='動画を読み込んでいます…';
+ const bar=document.createElement('progress');bar.id='lyraVideoProgressBar';bar.max=100;bar.value=0;
+ const description=document.createElement('p');description.className='lyra-video-small';description.textContent='圧縮はこの端末内で行います。動画と同じくらい時間がかかる場合があります。この画面を閉じずにお待ちください。';
+ const cancel=document.createElement('button');cancel.type='button';cancel.className='lyra-video-abort';cancel.textContent='圧縮をキャンセル';
+ const start=document.createElement('button');start.type='button';start.className='lyra-video-approve';start.textContent='▶ 圧縮を開始';start.hidden=true;
+ cancel.onclick=()=>lyraVideoAbortController?.abort();
+ card.append(heading,note,bar,description,start,cancel);cover.appendChild(card);document.body.appendChild(cover);
+ return {
+  update(percent,message){bar.value=Math.min(100,Math.max(0,percent));note.textContent=message},
+  showStart(callback){start.hidden=false;note.textContent='iPhoneの再生制限により操作が必要です。「圧縮を開始」を押してください。';start.onclick=()=>{start.hidden=true;callback()}},
+  remove(){cover.remove()}
+ };
+}
+function lyraVideoRecordMime(){
+ if(typeof MediaRecorder==='undefined'||typeof MediaRecorder.isTypeSupported!=='function')return null;
+ // On Safari/WebKit, prefer H.264/AAC MP4; Chromium commonly writes VP9/Opus into generic MP4,
+ // which will not reliably play on iPhones, so prefer VP8/Opus WebM outside WebKit.
+ const webkit=/iPhone|iPad|iPod/.test(navigator.userAgent)||(/Safari/.test(navigator.userAgent)&&!/Chrome|Chromium|Edg|OPR|Firefox/.test(navigator.userAgent));
+ const mp4=['video/mp4;codecs="avc1.42E01E,mp4a.40.2"','video/mp4'];
+ const webm=['video/webm;codecs=vp8,opus','video/webm'];
+ return (webkit?[...mp4,...webm]:[...webm,...mp4]).find(m=>MediaRecorder.isTypeSupported(m))||null;
+}
+async function lyraVideoCompressLocal(file){
+ if(file.size>160*1024*1024)throw Error('元動画が160MBを超えています。iPhoneで短く編集してから送信してください');
+ if(typeof HTMLCanvasElement==='undefined'||typeof HTMLCanvasElement.prototype.captureStream!=='function')
+  throw Error('このiPhoneのブラウザは端末内動画圧縮に非対応です。写真アプリで動画を短く編集し、10MB以下でお試しください');
+ const mime=lyraVideoRecordMime();
+ if(!mime)throw Error('このiPhoneでは動画を再エンコードできません。10MB以下に編集してから送信してください');
+ const abort=new AbortController();lyraVideoAbortController=abort;
+ const ui=lyraVideoCompressionPanel();const video=document.createElement('video');
+ video.playsInline=true;video.setAttribute('playsinline','');video.preload='auto';video.muted=false;
+ video.style.cssText='position:fixed;left:-10000px;top:0;width:1px;height:1px;pointer-events:none;opacity:0';
+ const canvas=document.createElement('canvas');canvas.style.cssText='position:fixed;left:-10000px;top:0;opacity:0';
+ document.body.append(video,canvas);
+ const source=URL.createObjectURL(file);
+ let stream=null,audioCtx=null,recorder=null,tickId=0;
+ try{
+  video.src=source;
+  await new Promise((resolve,reject)=>{
+   if(abort.signal.aborted)return reject(Error('圧縮をキャンセルしました'));
+   const guard=setTimeout(()=>finish(Error('動画を読み込めませんでした。iPhoneで再生できる形式を選択してください')),18000);
+   const onReady=()=>finish(null);const onFail=()=>finish(Error('動画を読み込めませんでした。対応するMP4・MOV・WebMを選択してください'));
+   const onAbort=()=>finish(Error('圧縮をキャンセルしました'));
+   function finish(e){clearTimeout(guard);video.removeEventListener('loadedmetadata',onReady);video.removeEventListener('error',onFail);abort.signal.removeEventListener('abort',onAbort);e?reject(e):resolve()}
+   video.addEventListener('loadedmetadata',onReady);video.addEventListener('error',onFail);abort.signal.addEventListener('abort',onAbort,{once:true});video.load();
+  });
+  if(!Number.isFinite(video.duration)||video.duration<=0)throw Error('動画の長さを確認できません');
+  if(video.duration>LYRA_VIDEO_MAX_SECONDS)throw Error('動画は60秒以内に短く編集してください。端末内圧縮の負荷を抑えるための制限です');
+  if(!video.videoWidth||!video.videoHeight)throw Error('動画の映像サイズを確認できません');
+  const scale=Math.min(1,640/Math.max(video.videoWidth,video.videoHeight));
+  canvas.width=Math.max(2,Math.floor(video.videoWidth*scale/2)*2);
+  canvas.height=Math.max(2,Math.floor(video.videoHeight*scale/2)*2);
+  const ctx=canvas.getContext('2d',{alpha:false});if(!ctx)throw Error('動画用キャンバスを準備できません');
+  ctx.fillStyle='#000';ctx.fillRect(0,0,canvas.width,canvas.height);
+  stream=canvas.captureStream(15);
+  if(!stream?.getVideoTracks().length)throw Error('ブラウザが動画の映像トラックを作成できません');
+  // Capture the media element's audio separately. Never silently drop a known audio track.
+  const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+  if(!AudioContextClass)throw Error('音声を保持した動画圧縮に対応していません。10MB以下の動画を選択してください');
+  try{
+   audioCtx=new AudioContextClass();
+   const audioNode=audioCtx.createMediaElementSource(video);
+   const destination=audioCtx.createMediaStreamDestination();
+   audioNode.connect(destination); // do not connect to speakers while transcoding
+   destination.stream.getAudioTracks().forEach(t=>stream.addTrack(t));
+   // Do not await resume here: on Safari it can remain pending until another user gesture.
+  }catch(e){throw Error('この環境では音声付き動画を安全に圧縮できません。動画を10MB以下に編集してから送信してください')}
+  const chunks=[];
+  const recorderOpts={mimeType:mime,videoBitsPerSecond:540000,audioBitsPerSecond:64000};
+  try{recorder=new MediaRecorder(stream,recorderOpts)}
+  catch(e){throw Error('この端末の動画エンコーダーを開始できません。動画を10MB以下に編集してお試しください')}
+  ui.update(1,'映像を'+canvas.width+'×'+canvas.height+'に縮小して圧縮します（最大60秒）');
+  const blob=await new Promise((resolve,reject)=>{
+   let settled=false;let lastDraw=-1;let timeout=null;
+   const done=(err,output)=>{
+    if(settled)return;settled=true;
+    clearTimeout(timeout);cancelAnimationFrame(tickId);
+    abort.signal.removeEventListener('abort',onAbort);
+    video.pause();
+    if(err)reject(err);else resolve(output);
+   };
+   const onAbort=()=>{
+    try{if(recorder.state!=='inactive')recorder.stop()}catch(e){}
+    done(Error('動画の圧縮をキャンセルしました'));
+   };
+   abort.signal.addEventListener('abort',onAbort,{once:true});
+   recorder.ondataavailable=e=>{if(e.data?.size>0)chunks.push(e.data)};
+   recorder.onerror=e=>done(Error('圧縮中に録画処理が停止しました。動画を短く編集してお試しください'));
+   recorder.onstop=()=>{
+    if(abort.signal.aborted)return done(Error('動画の圧縮をキャンセルしました'));
+    if(!chunks.length)return done(Error('圧縮後の動画を生成できませんでした'));
+    const type=recorder.mimeType.split(';')[0].toLowerCase();
+    if(!['video/mp4','video/webm'].includes(type))return done(Error('圧縮形式に対応していません: '+type));
+    done(null,new Blob(chunks,{type}));
+   };
+   function draw(time){
+    if(settled||abort.signal.aborted)return;
+    if(time-lastDraw>=66){
+     try{if(video.readyState>=2)ctx.drawImage(video,0,0,canvas.width,canvas.height)}catch(e){}
+     lastDraw=time;
+     const pc=Math.min(99,Math.round(video.currentTime/video.duration*100));
+     ui.update(pc,'圧縮中 '+pc+'%（'+Math.ceil(video.duration-video.currentTime)+'秒分の映像が残っています）');
+    }
+    tickId=requestAnimationFrame(draw);
+   }
+   video.onended=()=>{if(settled)return;ui.update(99,'圧縮した動画を書き出しています…');try{recorder.stop()}catch(e){done(Error('動画の書き出しに失敗しました'))}};
+   video.onerror=()=>done(Error('動画の読み込みが途中で停止しました'));
+   let playing=false;
+   async function beginPlayback(){
+    if(settled||playing)return;
+    const audioReady=await Promise.race([
+     audioCtx.resume().then(()=>true).catch(()=>false),
+     new Promise(resolve=>setTimeout(()=>resolve(false),2200))
+    ]);
+    if(!audioReady||audioCtx.state!=='running')throw Error('音声機能を開始できません');
+    const videoReady=await Promise.race([
+     video.play().then(()=>true).catch(()=>false),
+     new Promise(resolve=>setTimeout(()=>resolve(false),2500))
+    ]);
+    if(!videoReady)throw Error('動画の再生許可が必要です');
+    if(settled||playing)return;
+    playing=true;
+    try{recorder.start(1000)}catch(e){video.pause();throw Error('このブラウザでは動画圧縮を開始できません')}
+    timeout=setTimeout(()=>done(Error('圧縮に時間がかかりすぎたため停止しました。より短い動画をお試しください')),(video.duration+50)*1000);
+    tickId=requestAnimationFrame(draw);
+   }
+   beginPlayback().catch(()=>{
+    if(settled)return;
+    ui.showStart(()=>beginPlayback().catch(e=>done(Error('動画の圧縮を開始できませんでした。10MB以下に編集してください（'+e.message+'）'))));
+   });
+  });
+  if(!blob.size)throw Error('圧縮後の動画が空でした');
+  if(blob.size>10*1024*1024)throw Error('圧縮後も'+lyraVideoBytes(blob.size)+'あります。動画を短く編集してください');
+  ui.update(100,'端末内圧縮が完了しました');
+  return blob;
+ }catch(e){
+  if(abort.signal.aborted){const x=Error('動画の送信はキャンセルされました');x.lyraCancelled=true;throw x}
+  throw e;
+ }finally{
+  try{video.pause()}catch(e){}
+  try{if(recorder&&recorder.state!=='inactive')recorder.stop()}catch(e){}
+  try{stream?.getTracks().forEach(t=>t.stop())}catch(e){}
+  if(audioCtx)audioCtx.close().catch(()=>{});
+  video.removeAttribute('src');try{video.load()}catch(e){}
+  video.remove();canvas.remove();URL.revokeObjectURL(source);
+  ui.remove();if(lyraVideoAbortController===abort)lyraVideoAbortController=null;
+ }
+}
+// Preview matters: some Safari versions capture muted audio despite producing a video file.
+function lyraVideoConfirmOutput(blob){
+ return new Promise(resolve=>{
+  const cover=document.createElement('div');cover.className='lyra-video-work lyra-video-preview-cover';
+  const card=document.createElement('section');card.className='lyra-video-work-card';card.setAttribute('role','dialog');card.setAttribute('aria-label','圧縮後の動画を確認');
+  const heading=document.createElement('h3');heading.textContent='圧縮が完了しました';
+  const label=document.createElement('p');label.textContent='容量 '+lyraVideoBytes(blob.size)+'。送信前に動画を再生し、映像と音声が正常か確認してください。';
+  const preview=document.createElement('video');preview.controls=true;preview.playsInline=true;preview.setAttribute('playsinline','');preview.preload='metadata';
+  const url=URL.createObjectURL(blob);preview.src=url;preview.className='lyra-video-preview';
+  const warning=document.createElement('p');warning.className='lyra-video-small';warning.textContent='機種によっては音声が失われる場合があります。音声が必要なのに再生できない場合は、送信せず短く編集した元動画をご利用ください。';
+  const controls=document.createElement('div');controls.className='lyra-video-confirm-actions';
+  const cancel=document.createElement('button');cancel.textContent='キャンセル';cancel.className='lyra-video-abort';
+  const send=document.createElement('button');send.textContent='この動画を送信';send.className='lyra-video-approve';
+  function finish(ok){preview.pause();preview.removeAttribute('src');URL.revokeObjectURL(url);cover.remove();resolve(ok)}
+  cancel.onclick=()=>finish(false);send.onclick=()=>finish(true);
+  controls.append(cancel,send);card.append(heading,label,preview,warning,controls);cover.appendChild(card);document.body.append(cover);
+ });
+}
+
 async function lyraMediaSend(file,type,target){
  if(lyraMediaUploading||!lyraClient||!lyraUser)return;
  if(target.type==='direct'&&lyraSafetyBlocked.has(target.id))return lyraStatus('ブロック中の相手には送れません');
@@ -2108,9 +2297,19 @@ async function lyraMediaSend(file,type,target){
     else if(/\.webm$/i.test(file.name))mime='video/webm';
     else throw Error('対応動画形式はMP4・MOV・WebMです');
    }
-   if(file.size>10*1024*1024)throw Error('動画は10MB以下にしてください。短く編集してから送信してください');
    if(!file.size)throw Error('空のファイルは送れません');
-   extension=mime==='video/quicktime'?'mov':mime==='video/webm'?'webm':'mp4';blob=file;
+   blob=file;
+   if(file.size>10*1024*1024){
+    lyraStatus('10MBを超えるため、iPhone内で動画の圧縮を試します…');
+    blob=await lyraVideoCompressLocal(file);
+    if(blob.size>10*1024*1024)throw Error('圧縮後も10MBを超えました。短く編集した動画を選んでください');
+    if(!await lyraVideoConfirmOutput(blob)){
+     const cancelled=Error('動画の送信はキャンセルされました');cancelled.lyraCancelled=true;throw cancelled;
+    }
+    mime=blob.type.split(';')[0].toLowerCase();
+   }
+   if(!['video/mp4','video/quicktime','video/webm'].includes(mime))throw Error('端末で作成した動画形式に対応していません');
+   extension=mime==='video/quicktime'?'mov':mime==='video/webm'?'webm':'mp4';
   }
   path=lyraUser.id+'/'+crypto.randomUUID()+'.'+extension;
   // Live authorization check from the user's actual iPhone session.
@@ -2152,6 +2351,7 @@ async function lyraMediaSend(file,type,target){
    await lyraGroupLoad(false);
   }
  }catch(err){
+  if(err?.lyraCancelled){lyraStatus('動画の送信をキャンセルしました');return;}
   const details=String(err?.message||err||'不明なエラー');
   const code=err?.code?` [code: ${err.code}]`:'';
   lyraStatus(mediaStep+'で失敗しました：'+details+code);
