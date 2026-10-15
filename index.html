@@ -2061,7 +2061,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')lyraGlobalClose()});
 .lyra-media-video-pick{margin-top:10px;background:linear-gradient(135deg,#13a9ce,#1378dc)!important}
 .lyra-chat-media-img{display:block;max-width:min(270px,66vw);width:auto;max-height:310px;border-radius:13px;object-fit:contain;cursor:zoom-in;background:#ecf7ff}
 .lyra-chat-media-video{display:block;max-width:min(280px,68vw);width:100%;max-height:310px;border-radius:13px;background:#071e34}
-.lyra-media-loading{display:inline-block;min-width:100px;padding:8px 0;font-size:13px;opacity:.75}
+.lyra-media-retry{margin-left:6px;padding:5px 9px;border:1px solid #8cc9ee;border-radius:9px;background:#eef8ff;color:#126caa;font-weight:700;cursor:pointer}.lyra-media-loading{display:inline-block;min-width:100px;padding:8px 0;font-size:13px;opacity:.75}
 .lyra-media-lightbox{position:fixed;inset:0;background:#00182cde;z-index:100000;display:flex;align-items:center;justify-content:center;padding:65px 14px;box-sizing:border-box;cursor:zoom-out}
 .lyra-media-lightbox img{max-width:100%;max-height:85dvh;object-fit:contain;border-radius:12px}
 .lyra-media-lightbox button{position:absolute;top:20px;right:20px;border:0;border-radius:15px;background:white;color:#145383;padding:12px 16px;font-weight:bold}
@@ -2079,10 +2079,32 @@ function lyraMediaBubble(msg,group){
  if(!info)return '';
  const signed=lyraMediaUrls.get(info.storage_path),valid=signed&&signed.expires>Date.now();
  const iconText=info.media_kind==='photo'?'📷 写真':'🎬 動画';
- if(!valid)return `<span class="lyra-media-loading">${iconText}を読み込み中…</span>`;
+ if(!valid)return `<span class="lyra-media-loading">${iconText}を表示できません <button type="button" class="lyra-media-retry" onclick="lyraMediaRetry()">再読み込み</button></span>`;
  const src=escapeHTML(signed.url);
- if(info.media_kind==='photo')return `<img class="lyra-chat-media-img" src="${src}" alt="送信された写真" loading="lazy" onclick="lyraMediaLightbox(this.src)" onerror="this.replaceWith(document.createTextNode('写真を表示できません。画面を更新してください'))">`;
- return `<video class="lyra-chat-media-video" controls playsinline preload="none" src="${src}" aria-label="送信された動画">この環境では動画を再生できません。</video>`;
+ if(info.media_kind==='photo')return `<img class="lyra-chat-media-img" src="${src}" alt="送信された写真" loading="lazy" onclick="lyraMediaLightbox(this.src)" onerror="this.outerHTML='写真を表示できません <button type=&quot;button&quot; class=&quot;lyra-media-retry&quot; onclick=&quot;lyraMediaRetry()&quot;>再読み込み</button>'">`;
+ return `<video class="lyra-chat-media-video" controls playsinline preload="metadata" onerror="lyraMediaPlaybackError(this)" src="${src}" aria-label="送信された動画">この環境では動画を再生できません。</video>`;
+}
+let lyraMediaRetryBusy=false;
+async function lyraMediaRetry(){
+ if(lyraMediaRetryBusy||!lyraClient)return;
+ const target=view==='room'?{type:'direct',id:lyraActivePeer}:view==='group_room'?{type:'group',id:lyraGroupActive}:null;
+ if(!target?.id)return;
+ lyraMediaRetryBusy=true;
+ try{
+  lyraMediaUrls.clear();
+  await lyraMediaLoad(target.type,target.id);
+ }finally{lyraMediaRetryBusy=false}
+}
+function lyraMediaPlaybackError(el){
+ if(!el||el.dataset.lyraErrorShown)return;
+ el.dataset.lyraErrorShown='1';
+ const hint=document.createElement('div');
+ hint.className='lyra-media-loading';
+ hint.textContent='動画を再生できません。通信状態や動画形式を確認してください。 ';
+ const btn=document.createElement('button');
+ btn.type='button';btn.className='lyra-media-retry';btn.textContent='再読み込み';
+ btn.onclick=()=>lyraMediaRetry();
+ hint.append(btn);el.after(hint);
 }
 async function lyraMediaLoad(targetType,targetId){
  if(!lyraClient||!lyraUser||!targetId)return;
@@ -2412,7 +2434,7 @@ async function lyraMediaSend(file,type,target){
   if(err?.lyraCancelled){lyraStatus('動画の送信をキャンセルしました');return;}
   const details=String(err?.message||err||'不明なエラー');
   const code=err?.code?` [code: ${err.code}]`:'';
-  lyraStatus(mediaStep+'で失敗しました：'+details+code);
+  lyraStatus(mediaStep+'で失敗しました：'+details+code+(mediaStep.startsWith('①')?'。通信状態を確認して再度お試しください':mediaStep.startsWith('②')?'。送信履歴を確認してから再試行してください':''));
   if(uploaded&&path)lyraClient.storage.from(LYRA_MEDIA_BUCKET).remove([path]).catch(()=>{});
  }finally{lyraMediaUploading=false}
 }
