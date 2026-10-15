@@ -1666,10 +1666,10 @@ function lyraTogetherCard(e){
    ${e.details?`<p class="lyra-t-note">${escapeHTML(e.details)}</p>`:''}
    <h3>日程候補と投票</h3>
    <div class="lyra-t-votes">${options.map(o=>`<div class="lyra-t-vote ${e.my_option_id===o.id?'selected':''} ${e.final_option_id===o.id?'fixed':''}">
-    <div><strong>${escapeHTML(lyraTogetherTime(o.start_at))}</strong><small>${Number(o.votes)||0}票${e.final_option_id===o.id?' · 確定':e.my_option_id===o.id?' · あなたの投票':''}</small></div>
-    ${e.status==='open'?`<button type="button" onclick="lyraTogetherVote('${e.event_id}','${o.id}')" ${lyraTogetherBusy?'disabled':''}>${e.my_option_id===o.id?'変更する':'投票'}</button>`:''}
+    <div><strong>${escapeHTML(lyraTogetherTime(o.start_at))}</strong><small>${Number(o.votes)||0}票${e.final_option_id===o.id?' · 確定':e.my_option_id===o.id?' · あなたは投票済み':''}</small></div>
+    ${e.status==='open'?`<button type="button" onclick="lyraTogetherVote('${e.event_id}','${o.id}',${e.my_option_id===o.id})" ${lyraTogetherBusy?'disabled':''}>${e.my_option_id===o.id?'投票を取り消す':'投票する'}</button>`:''}
    </div>`).join('')}</div>
-   <p class="lyra-t-help">参加者1人につき1票。予定が確定するまでは変更できます。</p>
+   <p class="lyra-t-help">参加者1人につき1票。別の日程の「投票する」で変更でき、投票済みの日程から取り消すこともできます。</p>
    ${owned&&e.status==='open'?`<div class="lyra-t-finalize"><label for="tfinal-${e.event_id}">最終日程を決める</label><select id="tfinal-${e.event_id}" class="field">${options.map(o=>`<option value="${o.id}">${escapeHTML(lyraTogetherTime(o.start_at))}（${Number(o.votes)||0}票）</option>`).join('')}</select><button type="button" class="primary-btn" onclick="lyraTogetherFinalize('${e.event_id}')">この日程で確定する</button></div>`:''}
    <h3>集合場所</h3>
    <p class="lyra-t-location">${e.meeting_place?'📍 '+escapeHTML(e.meeting_place):'まだ決まっていません'}${e.meeting_address?`<small>${escapeHTML(e.meeting_address)}</small>`:''}</p>
@@ -1770,13 +1770,13 @@ async function lyraTogetherCreate(ev){
  }catch(e){lyraStatus('予定の作成に失敗: '+lyraTogetherErrorText(e));}
  finally{lyraTogetherBusy=false;if(btn)btn.disabled=false;}
 }
-async function lyraTogetherVote(eventId,optionId){
+async function lyraTogetherVote(eventId,optionId,isCurrent=false){
  if(lyraTogetherBusy||!lyraTogetherUUID(eventId)||!lyraTogetherUUID(optionId))return;
  lyraTogetherBusy=true;
  try{
-  const {error}=await lyraClient.rpc('lyra_together_vote',{p_event:eventId,p_option:optionId});
+  const {error}=isCurrent?await lyraClient.rpc('lyra_together_unvote',{p_event:eventId}):await lyraClient.rpc('lyra_together_vote',{p_event:eventId,p_option:optionId});
   if(error)throw error;
-  await lyraTogetherLoadAfterAction();lyraStatus('投票しました');
+  await lyraTogetherLoadAfterAction();lyraStatus(isCurrent?'投票を取り消しました':'投票しました');
  }catch(e){lyraStatus('投票できません: '+lyraTogetherErrorText(e));}
  finally{lyraTogetherBusy=false;}
 }
