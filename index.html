@@ -115,6 +115,12 @@
  #app > #phoneHeader:not(.hide){flex:0 0 calc(72px + env(safe-area-inset-top));}
  #app > #bottomNav:not(.hide){flex:0 0 83px;}
 }
+
+/* Translation controls remain hidden until requested. */
+#lyraTranslationPanel[hidden]{display:none!important}
+.lyra-translation-toggle{padding:7px 12px;background:#f7fbff;border-bottom:1px solid #dceaf8}
+.lyra-translation-toggle button{border:1px solid #b9dced;border-radius:14px;padding:8px 14px;background:linear-gradient(140deg,#fff,#e4f7ff);color:#126395;font-weight:750;box-shadow:0 2px 6px #176da012;cursor:pointer}
+.lyra-translation-toggle button[aria-expanded="true"]{background:#dff5ff}
 </style>
 
 <style>
@@ -865,7 +871,9 @@ function lyraLoadTranslatePrefs(){try{const o=JSON.parse(localStorage.getItem(ly
 function lyraSaveTranslatePrefs(){try{localStorage.setItem(lyraTranslatePrefKey(),JSON.stringify({lang:lyraTranslateLang,auto:lyraTranslateAuto}))}catch(e){}}
 function lyraTranslationId(msgId){return (lyraUser?.id||'guest')+':'+msgId+':'+lyraTranslateLang}
 function lyraLocalStatus(value){lyraLocalState=value;const label=document.getElementById('lyraLocalState');if(label)label.textContent=value;}
-function lyraTranslationTools(){return `<div class="lyra-translate-toolbar"><button type="button" onclick="lyraGlobalOpen()" class="lyra-global-open">🌍 LYRA Global</button><label>🌐 翻訳先 <select aria-label="翻訳先の言語" onchange="lyraChangeTranslateLang(this.value)">${Object.entries(LYRA_TRANSLATION_LANGS).map(([code,name])=>`<option value="${code}" ${lyraTranslateLang===code?'selected':''}>${name}</option>`).join('')}</select></label><label><input type="checkbox" ${lyraTranslateAuto?'checked':''} onchange="lyraToggleAutoTranslate(this.checked)">受信を自動翻訳</label><button class="lyra-local-setup" type="button" onclick="lyraPrepareLocalModel()">📦 端末内モデルを準備</button></div><div class="lyra-local-status"><span id="lyraLocalState">${escapeHTML(lyraLocalState)}</span><div>翻訳API料金なし。初回のみ翻訳モデルのダウンロードが必要です（容量が大きい場合があります）。文章は翻訳サービスへ送信しません。iPhoneでは未対応・動作不安定な場合があります。</div></div>`}
+function lyraTranslationTools(){return `<div class="lyra-translation-toggle"><button type="button" aria-expanded="false" aria-controls="lyraTranslationPanel" onclick="lyraToggleTranslationPanel(this)">🌐 翻訳する <span aria-hidden="true">⌄</span></button></div><div id="lyraTranslationPanel" hidden><div class="lyra-translate-toolbar"><button type="button" onclick="lyraGlobalOpen()" class="lyra-global-open">🌍 LYRA Global</button><label>🌐 翻訳先 <select aria-label="翻訳先の言語" onchange="lyraChangeTranslateLang(this.value)">${Object.entries(LYRA_TRANSLATION_LANGS).map(([code,name])=>`<option value="${code}" ${lyraTranslateLang===code?'selected':''}>${name}</option>`).join('')}</select></label><label><input type="checkbox" ${lyraTranslateAuto?'checked':''} onchange="lyraToggleAutoTranslate(this.checked)">受信を自動翻訳</label><button class="lyra-local-setup" type="button" onclick="lyraPrepareLocalModel()">📦 端末内モデルを準備</button></div><div class="lyra-local-status"><span id="lyraLocalState">${escapeHTML(lyraLocalState)}</span><div>翻訳API料金なし。初回のみ翻訳モデルのダウンロードが必要です（容量が大きい場合があります）。文章は翻訳サービスへ送信しません。iPhoneでは未対応・動作不安定な場合があります。</div></div></div>`}
+function lyraToggleTranslationPanel(button){const panel=document.getElementById('lyraTranslationPanel');if(!panel)return;panel.hidden=!panel.hidden;button.setAttribute('aria-expanded',String(!panel.hidden));}
+
 function lyraChangeTranslateLang(lang){if(!LYRA_TRANSLATION_LANGS[lang])return;lyraTranslateLang=lang;lyraSaveTranslatePrefs();lyraTranslationFailures.clear();lyraPaint();lyraRefreshRoom();}
 function lyraToggleAutoTranslate(enabled){lyraTranslateAuto=Boolean(enabled);lyraSaveTranslatePrefs();if(lyraTranslateAuto){const source=lyraTranslateLang==='JA'?'EN':'JA';if(!lyraLocalReady.has(source+'-'+lyraTranslateLang)){lyraLocalStatus('自動翻訳はモデルを準備した後に開始します');}else lyraTranslateRecent();}}
 function lyraLocalGetWorker(){
