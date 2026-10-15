@@ -2113,8 +2113,23 @@ async function lyraMediaSend(file,type,target){
    extension=mime==='video/quicktime'?'mov':mime==='video/webm'?'webm':'mp4';blob=file;
   }
   path=lyraUser.id+'/'+crypto.randomUUID()+'.'+extension;
-  mediaStep='① Supabase Storageへのアップロード';
-  lyraStatus('写真・動画をアップロードしています…');
+  // Live authorization check from the user's actual iPhone session.
+  // No user ID, token or secret is displayed, and RLS is not changed.
+  mediaStep='⓪ ログイン・Storage送信許可の確認';
+  lyraStatus('写真・動画の送信権限を確認しています…');
+  const {data:actualAuth,error:actualAuthError}=await lyraClient.auth.getUser();
+  if(actualAuthError||!actualAuth?.user||actualAuth.user.id!==lyraUser.id){
+   throw Error('ログイン認証がStorageへ引き継がれていません。LYRAを再起動し、再ログインしてお試しください');
+  }
+  const {data:canUpload,error:canUploadError}=await lyraClient.rpc('lyra_media_may_upload',{p_path:path});
+  if(canUploadError){
+   throw Error('実ユーザーの送信許可を確認できません: '+canUploadError.message);
+  }
+  if(canUpload!==true){
+   throw Error('実ユーザーのアップロード判定が拒否されました（false）。権限関数・ユーザー認証を確認する必要があります');
+  }
+  mediaStep='① Supabase Storageへのアップロード（許可関数はtrue）';
+  lyraStatus('送信許可OK。写真・動画をアップロードしています…');
   const {error:uploadErr}=await lyraClient.storage.from(LYRA_MEDIA_BUCKET).upload(path,blob,{contentType:mime,upsert:false,cacheControl:'3600'});
   if(uploadErr)throw uploadErr;uploaded=true;
   mediaStep='② メッセージ・添付情報の登録';
