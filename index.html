@@ -379,6 +379,17 @@
 </style>
 
 <style id="lyra-together-plus-style">.lyra-plus{margin:22px 0;padding:17px;background:#eef8ff;border:1px solid #b9e2ff;border-radius:17px;color:#16416a}.lyra-plus h3{margin:17px 0 8px;font-size:17px}.lyra-plus h3:first-child{margin-top:0}.lyra-plus p{line-height:1.6;margin:5px 0}.lyra-plus small{font-size:11px;color:#52738d;line-height:1.4}.lyra-plus-row{display:flex;gap:7px;flex-wrap:wrap}.lyra-plus-chip,.lyra-plus-form button{padding:9px 12px;border-radius:12px;border:1px solid #98d1ef;background:white;color:#0877ae;font-weight:700}.lyra-plus-chip.active{background:#118fe3;color:#fff}.lyra-plus-list{list-style:none;padding:0;margin:10px 0}.lyra-plus-list li{padding:9px 0;border-bottom:1px solid #d2e9fa;overflow-wrap:anywhere}.lyra-plus-list button{margin-left:8px;color:#a53b3b}.lyra-plus-form{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}.lyra-plus-form input{min-width:100px;flex:1 1 120px}.lyra-plus-form button{background:#168fe1;color:white;flex:0 0 auto}</style>
+<style id="lyra-main-tabs-fixed-v2">
+/* iPhone: anchor the entire app to the visual viewport, never the document scroll. */
+@media (max-width:700px) {
+ html,body {height:100%;overflow:hidden!important;overscroll-behavior:none;}
+ body .landing {height:100dvh!important;min-height:0!important;overflow:hidden!important;padding:0!important;}
+ body .landing > #app.phone,body #app.phone {position:fixed!important;inset:0!important;width:100%!important;height:100dvh!important;max-height:100dvh!important;min-height:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;border:0!important;border-radius:0!important;transform:none!important;}
+ body #app > #phoneHeader:not(.hide) {position:relative!important;flex-shrink:0!important;z-index:30!important;}
+ body #app > #screenContent {flex:1 1 0!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
+ body #app > #bottomNav:not(.hide) {position:relative!important;flex-shrink:0!important;z-index:30!important;}
+}
+</style>
 </head>
 <body>
 <div class="ambient"><div class="orb one"></div><div class="orb two"></div><div class="orb three"></div></div>
