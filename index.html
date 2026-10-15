@@ -1857,13 +1857,13 @@ function lyraPlusPanel(eventId){
  const me=rsvps.find(x=>x.user_id===lyraUser?.id)?.answer||'';
  const counts={yes:rsvps.filter(x=>x.answer==='yes').length,no:rsvps.filter(x=>x.answer==='no').length,maybe:rsvps.filter(x=>x.answer==='maybe').length};
  const attendees=rsvps.filter(x=>x.answer==='yes').length;
- const people=Math.max(1,attendees||Number(e.participant_count)||1);
+ const people=attendees;
  const amount=expenses.reduce((a,x)=>a+Number(x.amount_yen||0),0);
  const money=n=>Math.floor(n).toLocaleString('ja-JP')+'円';
  const picked=(e.options||[]).find(x=>x.id===e.final_option_id);
  return `<section class="lyra-plus"><h3>🙋 出欠確認</h3><p>参加 ${counts.yes}人 ・ 不参加 ${counts.no}人 ・ 未定 ${counts.maybe}人（未回答 ${Math.max(0,Number(e.participant_count)-rsvps.length)}人）</p>
  <div class="lyra-plus-row">${[['yes','参加'],['maybe','未定'],['no','不参加']].map(([a,t])=>`<button class="lyra-plus-chip ${me===a?'active':''}" onclick="lyraPlusAction('lyra_together_plus_rsvp',{p_event:'${eventId}',p_answer:'${a}'},'${eventId}')">${t}</button>`).join('')}</div>
- <h3>💴 割り勘メモ</h3><p>合計 <b>${money(amount)}</b> / ${people}人で均等割り：<b>約${money(Math.ceil(amount/people))}/人</b></p><small>「参加」の回答者を優先して計算。誰も回答していない場合は全参加者数で概算。精算・送金は行いません。</small>
+ ${people===0?`<h3>🚫 開催されません</h3><p>参加者が0人のため、この予定は開催されません。</p><h3>💴 割り勘メモ</h3><p>参加者がいないため、割り勘計算は行いません。</p>`:`<h3>💴 割り勘メモ</h3><p>合計 <b>${money(amount)}</b> / ${people}人で均等割り：<b>約${money(Math.ceil(amount/people))}/人</b></p><small>「参加」と回答した人だけで計算します。精算・送金は行いません。</small>`}
  <ul class="lyra-plus-list">${expenses.map(x=>`<li>${escapeHTML(x.label)}：${money(x.amount_yen)} ${x.paid_by===lyraUser?.id||e.owner_id===lyraUser?.id?`<button onclick="lyraPlusAction('lyra_together_plus_expense_delete',{p_event:'${eventId}',p_expense:'${x.id}'},'${eventId}')">削除</button>`:''}</li>`).join('')}</ul>
  <form class="lyra-plus-form" onsubmit="lyraPlusAddExpense(event,'${eventId}')"><input class="field" name="label" placeholder="費用（例：食事代）" maxlength="80" required><input class="field" name="amount" type="number" min="1" max="10000000" step="1" inputmode="numeric" placeholder="円" required><button type="submit">費用を追加</button></form>
  <h3>☑️ 共有チェックリスト</h3><ul class="lyra-plus-list">${tasks.map(x=>`<li><label><input type="checkbox" ${x.done?'checked':''} onchange="lyraPlusAction('lyra_together_plus_task_toggle',{p_event:'${eventId}',p_task:'${x.id}',p_done:this.checked},'${eventId}')"> ${escapeHTML(x.title)}</label></li>`).join('')}</ul>
