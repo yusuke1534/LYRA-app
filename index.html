@@ -2095,7 +2095,7 @@ async function lyraMediaCompressPhoto(file){
 async function lyraMediaSend(file,type,target){
  if(lyraMediaUploading||!lyraClient||!lyraUser)return;
  if(target.type==='direct'&&lyraSafetyBlocked.has(target.id))return lyraStatus('ブロック中の相手には送れません');
- lyraMediaUploading=true;let path=null,uploaded=false;
+ lyraMediaUploading=true;let path=null,uploaded=false;let mediaStep='ファイルの準備';
  try{
   let blob,mime,extension;
   if(type==='photo'){
@@ -2113,9 +2113,11 @@ async function lyraMediaSend(file,type,target){
    extension=mime==='video/quicktime'?'mov':mime==='video/webm'?'webm':'mp4';blob=file;
   }
   path=lyraUser.id+'/'+crypto.randomUUID()+'.'+extension;
+  mediaStep='① Supabase Storageへのアップロード';
   lyraStatus('写真・動画をアップロードしています…');
   const {error:uploadErr}=await lyraClient.storage.from(LYRA_MEDIA_BUCKET).upload(path,blob,{contentType:mime,upsert:false,cacheControl:'3600'});
   if(uploadErr)throw uploadErr;uploaded=true;
+  mediaStep='② メッセージ・添付情報の登録';
   const {data:sentId,error:sendErr}=await lyraClient.rpc('lyra_media_send',{
    p_recipient:target.type==='direct'?target.id:null,p_group:target.type==='group'?target.id:null,
    p_path:path,p_mime:mime,p_size:blob.size
@@ -2131,7 +2133,9 @@ async function lyraMediaSend(file,type,target){
    await lyraGroupLoad(false);
   }
  }catch(err){
-  lyraStatus('送信できませんでした：'+(err?.message||err));
+  const details=String(err?.message||err||'不明なエラー');
+  const code=err?.code?` [code: ${err.code}]`:'';
+  lyraStatus(mediaStep+'で失敗しました：'+details+code);
   if(uploaded&&path)lyraClient.storage.from(LYRA_MEDIA_BUCKET).remove([path]).catch(()=>{});
  }finally{lyraMediaUploading=false}
 }
