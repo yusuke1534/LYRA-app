@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="lyra-build" content="20261015-together-plus-rsvp-expenses-checklist-reminders">
+<meta name="lyra-build" content="20261016-notification-call-resilience">
 <meta name="theme-color" content="#eaf8ff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1356,9 +1356,14 @@ function lyraRtcGather(pc,limit=14000){if(pc.iceGatheringState==='complete')retu
 function lyraRtcCreatePeer(ctx){const pc=new RTCPeerConnection({iceServers:LYRA_RTC_ICE});ctx.pc=pc;ctx.remote=new MediaStream();
  pc.ontrack=ev=>{if(lyraRtc!==ctx)return;ctx.remote.addTrack(ev.track);lyraRtcBindMedia()};
  pc.onconnectionstatechange=()=>{if(lyraRtc!==ctx)return;
-  if(pc.connectionState==='connected'){ctx.state='active';if(!ctx.connectedAt)ctx.connectedAt=Date.now();lyraRtcRender()}
+  if(pc.connectionState==='connected'){clearTimeout(ctx.disconnectionTimer);ctx.state='active';if(!ctx.connectedAt)ctx.connectedAt=Date.now();lyraRtcRender()}
   else if(pc.connectionState==='failed'){lyraRtcInfo('通話を接続できませんでした。別の回線を試してください（TURNが必要な場合があります）。');lyraRtcHangup()}
-  else if(pc.connectionState==='disconnected'){clearTimeout(ctx.disconnectionTimer);ctx.disconnectionTimer=setTimeout(()=>{if(lyraRtc===ctx&&pc.connectionState==='disconnected')lyraRtcHangup()},18000)}
+  else if(pc.connectionState==='disconnected'){
+   ctx.state='reconnecting';lyraRtcRender();
+   try{if(pc.signalingState==='stable')pc.restartIce()}catch(e){console.warn('ICE restart unavailable',e)}
+   clearTimeout(ctx.disconnectionTimer);
+   ctx.disconnectionTimer=setTimeout(()=>{if(lyraRtc===ctx&&['disconnected','failed'].includes(pc.connectionState)){lyraRtcInfo('通信が復旧しないため通話を終了します');lyraRtcHangup()}},30000);
+  }
  };
  for(const track of ctx.local.getTracks())pc.addTrack(track,ctx.local);
  return pc;
@@ -1472,6 +1477,23 @@ async function lyraPushNotify(callId){
  if(!response.ok)console.warn('Notification send failed',response.status,await response.text());
 }
 window.addEventListener('pageshow',()=>{if(new URLSearchParams(location.search).has('incoming_call')){setTimeout(()=>{if(lyraUser)lyraRtcCheckIncoming();},1800);}});
+// Restore incoming-call state when iOS Safari/PWA resumes or the network reconnects.
+let lyraConnectivityRefreshAt=0;
+function lyraConnectivityRefresh(){
+ if(document.hidden||!navigator.onLine||!lyraUser||!lyraClient)return;
+ const now=Date.now();if(now-lyraConnectivityRefreshAt<2500)return;
+ lyraConnectivityRefreshAt=now;
+ Promise.resolve(lyraRtcCheckIncoming()).catch(console.warn);
+ if(lyraRtc)Promise.resolve(lyraRtcCheckCall(lyraRtc)).catch(console.warn);
+ const pc=lyraRtc?.pc;
+ if(pc&&pc.connectionState==='disconnected'&&pc.signalingState==='stable'){
+  try{pc.restartIce()}catch(e){console.warn('ICE restart',e)}
+ }
+}
+window.addEventListener('online',lyraConnectivityRefresh);
+window.addEventListener('pageshow',lyraConnectivityRefresh);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)lyraConnectivityRefresh()});
+
 </script>
 <script>
 // ===== LYRA REAL GROUP CHAT v1 (free tier / text messages) =====
