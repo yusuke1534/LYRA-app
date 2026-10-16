@@ -136,6 +136,13 @@ html,body{background:#fff!important}
 #screenContent input,#screenContent textarea,#screenContent select{color:#080808}
 #screenContent input::placeholder,#screenContent textarea::placeholder{color:#262626!important;opacity:1}
 @media(max-width:700px){body{background:#fff!important}}
+
+/* LYRA Pay Memo: readable white ledger */
+.lyra-paymemo{background:#fff!important;border:1px solid #c7d9ed;border-radius:18px;padding:14px;margin:14px 0;color:#111!important}
+.lyra-paymemo h3,.lyra-paymemo h4,.lyra-paymemo p,.lyra-paymemo li,.lyra-paymemo small{color:#111!important}
+.lyra-paymemo h4{margin:12px 0 6px}.lyra-paymemo ul{list-style:none;padding:0;margin:6px 0}
+.lyra-paymemo li{padding:8px 0;border-bottom:1px solid #e6edf5}.lyra-paymemo input{accent-color:#087cf4;width:18px;height:18px;vertical-align:middle}
+.lyra-paymemo small,.lyra-paymemo-note{font-size:12px;line-height:1.65}
 </style>
 
 <style>
@@ -1802,6 +1809,7 @@ function lyraTogetherCard(e){
    <div class="lyra-t-actions">
     ${mapURL?`<a href="${escapeHTML(mapURL)}" target="_blank" rel="noopener noreferrer">地図で見る ↗</a>`:''}
     <button type="button" onclick="lyraTogetherShare('${e.event_id}')">予定を共有</button>
+    <button type="button" class="lyra-invite-open" onclick="lyraInviteOpen('${e.event_id}')">💌 招待状を作る</button>
     ${owned&&e.status!=='canceled'?`<button type="button" onclick="lyraTogetherPlace('${e.event_id}')">場所を編集</button>`:''}
    </div>
    ${lyraPlusPanel(e.event_id)}
@@ -1980,6 +1988,65 @@ async function lyraTogetherShare(eventId){
  try{if(navigator.share)await navigator.share({text:content});else if(navigator.clipboard){await navigator.clipboard.writeText(content);lyraStatus('予定をコピーしました');}else overlay(`<h3 class="sheet-title">予定の共有</h3><textarea class="field" rows="6" readonly onclick="this.select()">${escapeHTML(content)}</textarea><button class="primary-btn" onclick="closeModal()">閉じる</button>`)}catch(e){if(e?.name!=='AbortError')lyraStatus('共有できませんでした');}
 }
 
+
+/* LYRA Invite: invitation card generated from existing Together event.
+   No public event disclosure; invitation does not add members or bypass RLS. */
+let lyraInviteEventId=null;
+function lyraInviteContent(){
+ const e=lyraTogetherEvents.find(x=>x.event_id===lyraInviteEventId);
+ if(!e)return '';
+ const style=document.getElementById('lyraInviteStyle')?.value||'classic';
+ const message=(document.getElementById('lyraInviteMessage')?.value||'').trim();
+ const date=(e.options||[]).find(o=>String(o.id)===String(e.final_option_id));
+ const marks={classic:'💌',party:'🎉',birthday:'🎂',travel:'✈️'};
+ const heading=marks[style]||'💌';
+ const candidates=e.status==='open'?(e.options||[]).map(o=>'・'+lyraTogetherTime(o.start_at)).join('\n'):'';
+ return `${heading} LYRA Invite\n\n【${e.title}】\n${message?message+'\n\n':''}${date?'📅 日時：'+lyraTogetherTime(date.start_at):'📅 日程調整中\n'+candidates}${e.meeting_place?'\n📍 集合：'+e.meeting_place:''}${e.meeting_address?'\n🗺 住所：'+e.meeting_address:''}\n\nLYRAの「みんなで」で投票・出欠を確認できます。\n※予定を閲覧できるのは、LYRAで参加者として招待された人だけです。`;
+}
+function lyraInvitePreview(){
+ const el=document.getElementById('lyraInvitePreview');
+ if(el)el.textContent=lyraInviteContent();
+}
+function lyraInviteOpen(id){
+ const e=lyraTogetherEvents.find(x=>x.event_id===id);
+ if(!e||e.status==='canceled')return lyraStatus('この予定の招待状は作成できません');
+ lyraInviteEventId=id;
+ overlay(`<button class="sheet-close" onclick="closeModal()">${icon('close','small')}</button>
+ <div class="lyra-invite-modal"><h3 class="sheet-title">💌 LYRA Invite — 招待状</h3>
+ <p>「みんなで」の予定から招待文を作成します。招待相手は既存の参加者に限られます。</p>
+ <label class="field-label" for="lyraInviteStyle">デザイン</label>
+ <select id="lyraInviteStyle" class="field" onchange="lyraInvitePreview()">
+ <option value="classic">💌 シンプル</option><option value="party">🎉 パーティー</option>
+ <option value="birthday">🎂 誕生日</option><option value="travel">✈️ 旅行</option></select>
+ <label class="field-label" for="lyraInviteMessage">ひとことメッセージ（任意）</label>
+ <textarea class="field" id="lyraInviteMessage" rows="3" maxlength="200" oninput="lyraInvitePreview()" placeholder="例：みんなで楽しい時間を過ごしましょう！"></textarea>
+ <div class="lyra-invite-preview" id="lyraInvitePreview" aria-live="polite"></div>
+ <div class="lyra-invite-buttons"><button type="button" class="primary-btn" onclick="lyraInviteShare()">招待状を送る・共有</button>
+ <button type="button" class="lyra-invite-copy" onclick="lyraInviteCopy()">文章をコピー</button></div>
+ <small>この機能は招待文の作成・共有です。新しい参加者の追加や、LYRA外からの出欠回答には対応していません。</small></div>`);
+ lyraInvitePreview();
+}
+async function lyraInviteCopy(){
+ const content=lyraInviteContent();
+ if(!content)return;
+ try{
+  if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(content);
+  else{
+   const area=document.createElement('textarea');area.value=content;area.style.position='fixed';area.style.opacity='0';
+   document.body.append(area);area.select();const ok=document.execCommand('copy');area.remove();
+   if(!ok)throw Error('copy failed');
+  }
+  lyraStatus('招待状の文章をコピーしました');
+ }catch(e){lyraStatus('コピーできません。プレビューの文章を選択してください');}
+}
+async function lyraInviteShare(){
+ const content=lyraInviteContent();if(!content)return;
+ try{
+  if(navigator.share)await navigator.share({title:'LYRA Invite',text:content});
+  else await lyraInviteCopy();
+ }catch(e){if(e?.name!=='AbortError')lyraStatus('共有できませんでした');}
+}
+
 // LYRA Together+ : shared RSVP, expenses, checklist, and free local reminders.
 const lyraPlusCache=new Map();
 let lyraPlusUser=null;
@@ -1995,6 +2062,39 @@ async function lyraPlusAction(rpc,args,eventId){
  try{const {error}=await lyraClient.rpc(rpc,args);if(error)throw error;await lyraPlusLoad(eventId);lyraStatus('保存しました');}
  catch(e){lyraStatus('保存できません: '+lyraTogetherErrorText(e));}
 }
+// LYRA Pay Memo: deterministic integer-yen settlement summary.
+function lyraPayMemoSettlement(eventId,expenses,rsvps){
+ const attendees=[...new Set(rsvps.filter(x=>x.answer==='yes').map(x=>x.user_id).filter(Boolean))].sort();
+ const yen=n=>Math.round(n).toLocaleString('ja-JP')+'円';
+ if(!attendees.length)return '<p>参加者が0人のため精算計算は行いません。</p>';
+ const paid=new Map(attendees.map(id=>[id,0]));
+ let excluded=0;
+ for(const x of expenses){const amt=Number(x.amount_yen);if(!Number.isSafeInteger(amt)||amt<0)continue;if(paid.has(x.paid_by))paid.set(x.paid_by,paid.get(x.paid_by)+amt);else excluded+=amt;}
+ const total=[...paid.values()].reduce((a,b)=>a+b,0);
+ const base=Math.floor(total/attendees.length),extra=total%attendees.length;
+ const balance=attendees.map((id,i)=>({id,delta:paid.get(id)-base-(i<extra?1:0)}));
+ const creditors=balance.filter(x=>x.delta>0).map(x=>({...x})),debtors=balance.filter(x=>x.delta<0).map(x=>({...x,delta:-x.delta}));
+ const payments=[];let i=0,j=0;
+ while(i<debtors.length&&j<creditors.length){const amt=Math.min(debtors[i].delta,creditors[j].delta);if(amt>0)payments.push({from:debtors[i].id,to:creditors[j].id,amount:amt});debtors[i].delta-=amt;creditors[j].delta-=amt;if(debtors[i].delta===0)i++;if(creditors[j].delta===0)j++;}
+ const name=id=>id===lyraUser?.id?'あなた':('参加者 '+(attendees.indexOf(id)+1));
+ const key='lyra-paymemo-'+(lyraUser?.id||'')+'-'+eventId;
+ let checked={};try{checked=JSON.parse(localStorage.getItem(key)||'{}')||{}}catch{}
+ const fingerprint=JSON.stringify({attendees,expenses:expenses.map(x=>[x.id,x.amount_yen,x.paid_by])});
+ if(checked.fingerprint!==fingerprint)checked={fingerprint,done:{}};
+ const rows=payments.map((x,n)=>`<li class="lyra-paymemo-line"><label><input type="checkbox" ${checked.done?.[n]?'checked':''} onchange="lyraPayMemoCheck('${eventId}',${n},this.checked)"> <strong>${escapeHTML(name(x.from))}</strong> → <strong>${escapeHTML(name(x.to))}</strong>：${yen(x.amount)}</label></li>`).join('');
+ return `<div class="lyra-paymemo"><h3>💳 LYRA Pay Memo｜精算の目安</h3><p>参加者 ${attendees.length}人・対象費用 <strong>${yen(total)}</strong></p><p>1人あたり ${yen(base)}${extra?'（端数の'+extra+'人は＋1円）':''}</p>${excluded?`<p class="lyra-paymemo-note">⚠️ 参加者以外が立て替えた ${yen(excluded)} は計算対象外です。参加者の出欠を確認してください。</p>`:''}<h4>立て替え額</h4><ul>${attendees.map(id=>`<li>${escapeHTML(name(id))}：${yen(paid.get(id))}</li>`).join('')}</ul><h4>精算する金額</h4>${rows?`<ul>${rows}</ul>`:'<p>精算の必要はありません。</p>'}<small>チェックはこの端末だけに保存され、ほかの参加者には共有されません。実際の送金・決済は行いません。参加者番号はこの画面内の仮表示です。</small></div>`;
+}
+function lyraPayMemoCheck(eventId,index,done){
+ const s=lyraPlusCache.get(eventId);if(!s)return;
+ const r=s.rsvps||[],ex=s.expenses||[];
+ const attendees=[...new Set(r.filter(x=>x.answer==='yes').map(x=>x.user_id).filter(Boolean))].sort();
+ const fingerprint=JSON.stringify({attendees,expenses:ex.map(x=>[x.id,x.amount_yen,x.paid_by])});
+ const key='lyra-paymemo-'+(lyraUser?.id||'')+'-'+eventId;
+ let old={};try{old=JSON.parse(localStorage.getItem(key)||'{}')}catch{}
+ if(old.fingerprint!==fingerprint)old={fingerprint,done:{}};
+ old.done=old.done||{};old.done[index]=!!done;
+ try{localStorage.setItem(key,JSON.stringify(old))}catch{lyraStatus('この端末にチェック状態を保存できませんでした');}
+}
 function lyraPlusPanel(eventId){
  const e=lyraTogetherEvents.find(x=>x.event_id===eventId);if(!e)return '';
  const s=lyraPlusCache.get(eventId);if(!s)return `<div class="lyra-plus"><h3>みんなで＋</h3><button class="lyra-t-add" onclick="lyraPlusLoad('${eventId}')">出欠・割り勘・リストを読み込む</button></div>`;
@@ -2009,6 +2109,7 @@ function lyraPlusPanel(eventId){
  return `<section class="lyra-plus"><h3>🙋 出欠確認</h3><p>参加 ${counts.yes}人 ・ 不参加 ${counts.no}人 ・ 未定 ${counts.maybe}人（未回答 ${Math.max(0,Number(e.participant_count)-rsvps.length)}人）</p>
  <div class="lyra-plus-row">${[['yes','参加'],['maybe','未定'],['no','不参加']].map(([a,t])=>`<button class="lyra-plus-chip ${me===a?'active':''}" onclick="lyraPlusAction('lyra_together_plus_rsvp',{p_event:'${eventId}',p_answer:'${a}'},'${eventId}')">${t}</button>`).join('')}</div>
  ${people===0?`<h3>🚫 開催されません</h3><p>参加者が0人のため、この予定は開催されません。</p><h3>💴 割り勘メモ</h3><p>参加者がいないため、割り勘計算は行いません。</p>`:`<h3>💴 割り勘メモ</h3><p>合計 <b>${money(amount)}</b> / ${people}人で均等割り：<b>約${money(Math.ceil(amount/people))}/人</b></p><small>「参加」と回答した人だけで計算します。精算・送金は行いません。</small>`}
+ ${people>0?lyraPayMemoSettlement(eventId,expenses,rsvps):''}
  <ul class="lyra-plus-list">${expenses.map(x=>`<li>${escapeHTML(x.label)}：${money(x.amount_yen)} ${x.paid_by===lyraUser?.id||e.owner_id===lyraUser?.id?`<button onclick="lyraPlusAction('lyra_together_plus_expense_delete',{p_event:'${eventId}',p_expense:'${x.id}'},'${eventId}')">削除</button>`:''}</li>`).join('')}</ul>
  <form class="lyra-plus-form" onsubmit="lyraPlusAddExpense(event,'${eventId}')"><input class="field" name="label" placeholder="費用（例：食事代）" maxlength="80" required><input class="field" name="amount" type="number" min="1" max="10000000" step="1" inputmode="numeric" placeholder="円" required><button type="submit">費用を追加</button></form>
  <h3>☑️ 共有チェックリスト</h3><ul class="lyra-plus-list">${tasks.map(x=>`<li><label><input type="checkbox" ${x.done?'checked':''} onchange="lyraPlusAction('lyra_together_plus_task_toggle',{p_event:'${eventId}',p_task:'${x.id}',p_done:this.checked},'${eventId}')"> ${escapeHTML(x.title)}</label></li>`).join('')}</ul>
@@ -2152,6 +2253,14 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')lyraGlobalClose()});
 .lyra-media-lightbox{position:fixed;inset:0;background:#00182cde;z-index:100000;display:flex;align-items:center;justify-content:center;padding:65px 14px;box-sizing:border-box;cursor:zoom-out}
 .lyra-media-lightbox img{max-width:100%;max-height:85dvh;object-fit:contain;border-radius:12px}
 .lyra-media-lightbox button{position:absolute;top:20px;right:20px;border:0;border-radius:15px;background:white;color:#145383;padding:12px 16px;font-weight:bold}
+
+/* LYRA Invite: preserve white backgrounds and dark legible text. */
+.lyra-invite-modal{color:#101010;max-width:540px;margin:auto;padding:6px 4px 18px}
+.lyra-invite-modal p,.lyra-invite-modal small{color:#161616;line-height:1.65}
+.lyra-invite-preview{white-space:pre-wrap;overflow-wrap:anywhere;background:#fff;border:1px solid #b7d8f1;border-radius:18px;padding:20px;margin:14px 0;line-height:1.8;color:#111;font-size:14px;box-shadow:0 5px 22px #0b4d9010}
+.lyra-invite-buttons{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+.lyra-invite-copy{border:1px solid #a6c9e6;border-radius:12px;background:#fff;color:#000;padding:12px 16px;font-weight:800}
+.lyra-invite-open{color:#095eac!important}
 </style>
 <script>
 // LYRA Media v1: private photos & short videos in 1:1 and group chats.
