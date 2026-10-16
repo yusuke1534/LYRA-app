@@ -440,6 +440,11 @@ html,body,#app,.phone,.phone-main,.bottom-nav{background:#fff!important;}
 /* Readable text in white cards; do not alter text over blue buttons. */
 .lyra-t-cta strong,.lyra-t-cta span,.lyra-t-empty strong,.lyra-t-heading p,.lyra-t-section h3,.lyra-t-section small,.lyra-t-footer{color:#000!important;}
 </style>
+<style id="lyra-push-primary-blue-fix">
+/* Keep notification opt-in CTA saturated blue, even in the white theme. */
+.lyra-push-card button.primary-btn:not(:disabled){background:#0879e8!important;background-image:linear-gradient(135deg,#0759d4,#009bea)!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border:1px solid #0879e8!important;box-shadow:0 6px 16px rgba(0,104,220,.20)!important;opacity:1!important;}
+.lyra-push-card button.primary-btn:not(:disabled) *{color:#fff!important;-webkit-text-fill-color:#fff!important;}
+</style>
 </head>
 <body>
 <div class="ambient"><div class="orb one"></div><div class="orb two"></div><div class="orb three"></div></div>
