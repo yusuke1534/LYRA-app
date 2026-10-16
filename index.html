@@ -2689,22 +2689,24 @@ lyraGroupRefreshRoom=async function(...args){const id=lyraGroupActive;await lyra
 </script>
 <script id="lyra-task-app">
 /* LYRA Task: separate secured Supabase tables; existing Together checklist is untouched. */
-let lyraTaskBoards=[],lyraTaskItems=[],lyraTaskBoardId=null,lyraTaskLoading=false,lyraTaskError='',lyraTaskAccount=null;
+let lyraTaskBoards=[],lyraTaskItems=[],lyraTaskMembers=[],lyraTaskBoardId=null,lyraTaskLoading=false,lyraTaskError='',lyraTaskAccount=null,lyraTaskLastRefresh=0;
 const lyraTaskEscape=x=>escapeHTML(String(x??''));
-function lyraTaskReset(){lyraTaskBoards=[];lyraTaskItems=[];lyraTaskBoardId=null;lyraTaskError='';}
+function lyraTaskReset(){lyraTaskBoards=[];lyraTaskItems=[];lyraTaskMembers=[];lyraTaskBoardId=null;lyraTaskError='';}
 function lyraTaskOpen(){if(!lyraUser)return;view='task';lyraPaint();lyraTaskLoad();}
 function lyraTaskClose(){go('together')}
 function lyraTaskView(){
  const board=lyraTaskBoards.find(b=>b.id===lyraTaskBoardId);
  const tasks=lyraTaskItems.filter(t=>t.board_id===lyraTaskBoardId).sort((a,b)=>Number(a.done)-Number(b.done)||String(a.due_on||'9999').localeCompare(String(b.due_on||'9999'))||String(a.created_at).localeCompare(String(b.created_at)));
  const done=tasks.filter(t=>t.done).length;
+ const members=lyraTaskMembers.filter(m=>m.board_id===lyraTaskBoardId);
+ const dueSoon=tasks.filter(t=>!t.done&&t.due_on&&t.due_on<=new Date(Date.now()+86400000).toLocaleDateString('sv-SE')).length;
  return `<div class="lyra-task-page"><div class="lyra-task-top"><button class="lyra-task-btn lyra-task-light" onclick="lyraTaskClose()">← 戻る</button><h2>LYRA Task</h2><button class="lyra-task-btn lyra-task-light" onclick="lyraTaskLoad()">↻</button></div><p class="lyra-task-help">共同ToDo — メンバーだけで共有できるタスクリストです。</p>
  ${lyraTaskError?`<div class="lyra-task-error">${lyraTaskEscape(lyraTaskError)}</div>`:''}
  <section class="lyra-task-panel"><h3>新しい共有リスト</h3><form onsubmit="lyraTaskCreate(event)"><input class="lyra-task-input" name="title" maxlength="80" placeholder="例：旅行の準備、買い物、家事" required><button class="lyra-task-btn" type="submit">＋ リストを作成</button></form></section>
  <section class="lyra-task-panel"><h3>招待コードで参加</h3><form class="lyra-task-row" onsubmit="lyraTaskJoin(event)"><input class="lyra-task-input" style="flex:1" name="code" maxlength="24" placeholder="共有コードを入力" required><button class="lyra-task-btn" type="submit">参加</button></form><p class="lyra-task-help">コードを知る人が参加できます。信頼できる相手にだけ送ってください。</p></section>
  <section class="lyra-task-panel"><h3>共有リスト（${lyraTaskBoards.length}）</h3>${lyraTaskBoards.map(b=>`<button class="lyra-task-board ${b.id===lyraTaskBoardId?'active':''}" onclick="lyraTaskSelect('${b.id}')"><strong>${lyraTaskEscape(b.title)}</strong><small style="display:block;margin-top:5px">作成者：${b.owner_id===lyraUser?.id?'自分':'共有メンバー'}</small></button>`).join('')||'<p class="lyra-task-help">まだリストがありません。</p>'}</section>
- ${board?`<section class="lyra-task-panel"><h3>${lyraTaskEscape(board.title)}</h3><p class="lyra-task-help">${done}/${tasks.length} 件完了</p><div class="lyra-task-row"><button class="lyra-task-btn lyra-task-light" onclick="lyraTaskCopyCode()">共有コードをコピー</button><button class="lyra-task-btn lyra-task-light" onclick="lyraTaskShare()">友だちに共有</button><button class="lyra-task-btn lyra-task-light" onclick="lyraTaskLeave()">リストから退出</button></div><form onsubmit="lyraTaskAdd(event)" style="margin-top:14px"><input name="title" class="lyra-task-input" maxlength="160" placeholder="やることを入力" required><div class="lyra-task-row"><label style="flex:1;font-size:12px">期限 <input class="lyra-task-input" type="date" name="due_on"></label><button class="lyra-task-btn" type="submit">＋ 追加</button></div></form>
- ${tasks.map(t=>`<div class="lyra-task-item ${t.done?'done':''}"><input type="checkbox" ${t.done?'checked':''} onchange="lyraTaskToggle('${t.id}',this.checked)" aria-label="完了"><div style="flex:1;min-width:0"><strong>${lyraTaskEscape(t.title)}</strong><small>${t.due_on?'期限：'+lyraTaskEscape(t.due_on)+' · ':''}${t.assignee_id?'担当者あり':'担当者未設定'}</small></div><button class="lyra-task-btn lyra-task-light" onclick="lyraTaskAssign('${t.id}')">担当</button><button class="lyra-task-btn lyra-task-light" onclick="lyraTaskDelete('${t.id}')">削除</button></div>`).join('')||'<p class="lyra-task-help">まだタスクがありません。</p>'}</section>`:''}
+ ${board?`<section class="lyra-task-panel"><h3>${lyraTaskEscape(board.title)}</h3><p class="lyra-task-help">${done}/${tasks.length} 件完了 · 期限が今日・明日まで：${dueSoon}件 · 参加者：${members.length}人</p><div class="lyra-task-row"><button class="lyra-task-btn lyra-task-light" onclick="lyraTaskCopyCode()">共有コードをコピー</button><button class="lyra-task-btn lyra-task-light" onclick="lyraTaskShare()">友だちに共有</button><button class="lyra-task-btn lyra-task-light" onclick="lyraTaskLeave()">リストから退出</button></div><form onsubmit="lyraTaskAdd(event)" style="margin-top:14px"><input name="title" class="lyra-task-input" maxlength="160" placeholder="やることを入力" required><div class="lyra-task-row"><label style="flex:1;font-size:12px">期限 <input class="lyra-task-input" type="date" name="due_on"></label><button class="lyra-task-btn" type="submit">＋ 追加</button></div></form>
+ ${tasks.map(t=>`<div class="lyra-task-item ${t.done?'done':''}"><input type="checkbox" ${t.done?'checked':''} onchange="lyraTaskToggle('${t.id}',this.checked)" aria-label="完了"><div style="flex:1;min-width:0"><strong>${lyraTaskEscape(t.title)}</strong><small>${t.due_on?'期限：'+lyraTaskEscape(t.due_on)+' · ':''}${t.assignee_id?(t.assignee_id===lyraUser.id?'担当：自分':'担当：メンバー '+(members.findIndex(m=>m.user_id===t.assignee_id)+1)):'担当者未設定'}</small></div><select aria-label="担当者を選択" class="lyra-task-input" style="width:105px" onchange="lyraTaskAssignTo('${t.id}',this.value)"><option value="" ${!t.assignee_id?'selected':''}>未設定</option>${members.map((m,i)=>`<option value="${m.user_id}" ${m.user_id===t.assignee_id?'selected':''}>${m.user_id===lyraUser.id?'自分':'メンバー '+(i+1)}</option>`).join('')}</select><button class="lyra-task-btn lyra-task-light" onclick="lyraTaskDelete('${t.id}')">削除</button></div>`).join('')||'<p class="lyra-task-help">まだタスクがありません。</p>'}</section>`:''}
  <p class="lyra-task-help">この機能を共有利用するには、付属の LYRA_TASK_SETUP.sql をSupabase SQL Editorで一度実行してください。</p></div>`;
 }
 function lyraTaskPaint(){if(view==='task'&&lyraUser&&lyraProfile)lyraPaint();}
@@ -2721,6 +2723,10 @@ async function lyraTaskLoad(){
  const {data:items,error:e2}=await lyraClient.from('lyra_task_items').select('id,board_id,title,done,due_on,assignee_id,created_at').in('board_id',lyraTaskBoards.length?lyraTaskBoards.map(b=>b.id):['00000000-0000-0000-0000-000000000000']);
  if(e2)throw e2;
  lyraTaskItems=items||[];
+ const {data:members,error:e3}=await lyraClient.from('lyra_task_members').select('board_id,user_id,joined_at').in('board_id',lyraTaskBoards.length?lyraTaskBoards.map(b=>b.id):['00000000-0000-0000-0000-000000000000']);
+ if(e3)throw e3;
+ lyraTaskMembers=members||[];
+ lyraTaskLastRefresh=Date.now();
  }catch(e){lyraTaskError=lyraTaskFriendly(e);}finally{lyraTaskLoading=false;lyraTaskPaint();}
 }
 async function lyraTaskAction(action){
@@ -2735,7 +2741,7 @@ async function lyraTaskShare(){const b=lyraTaskBoards.find(x=>x.id===lyraTaskBoa
 function lyraTaskAdd(ev){ev.preventDefault();const f=ev.target,title=f.elements.title.value.trim(),due_on=f.elements.due_on.value||null;if(!title||!lyraTaskBoardId)return;lyraTaskAction(async()=>{const {error}=await lyraClient.from('lyra_task_items').insert({board_id:lyraTaskBoardId,title,due_on,created_by:lyraUser.id});if(error)throw error;});}
 function lyraTaskToggle(id,done){lyraTaskAction(async()=>{const {error}=await lyraClient.from('lyra_task_items').update({done}).eq('id',id);if(error)throw error;});}
 function lyraTaskDelete(id){if(!confirm('このタスクを削除しますか？'))return;lyraTaskAction(async()=>{const {error}=await lyraClient.from('lyra_task_items').delete().eq('id',id);if(error)throw error;});}
-function lyraTaskAssign(id){const t=lyraTaskItems.find(x=>x.id===id);if(!t)return;const next=t.assignee_id?null:lyraUser.id;lyraTaskAction(async()=>{const {error}=await lyraClient.from('lyra_task_items').update({assignee_id:next}).eq('id',id);if(error)throw error;});}
+function lyraTaskAssignTo(id,assignee){lyraTaskAction(async()=>{const {error}=await lyraClient.from('lyra_task_items').update({assignee_id:assignee||null}).eq('id',id);if(error)throw error;});}
 function lyraTaskLeave(){if(!confirm('この共有リストから退出しますか？（作成者は退出できません）'))return;lyraTaskAction(async()=>{const {error}=await lyraClient.from('lyra_task_members').delete().eq('board_id',lyraTaskBoardId).eq('user_id',lyraUser.id);if(error)throw error;lyraTaskBoardId=null;});}
 const lyraTaskPrevPaint=lyraPaint;
 lyraPaint=function(...args){
@@ -2752,6 +2758,8 @@ go=function(tab){lyraTaskPrevGo(tab);if(tab==='task')lyraTaskOpen();};
 const lyraTaskPrevSession=lyraApplySession;
 lyraApplySession=async function(user){if(!user||user.id!==lyraTaskAccount){lyraTaskReset();lyraTaskAccount=user?.id||null;}return lyraTaskPrevSession(user);};
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&view==='task')lyraTaskLoad();});
+// Lightweight automatic synchronization while viewing a board; no schema change required.
+setInterval(()=>{if(view==='task'&&!document.hidden&&!lyraTaskLoading&&Date.now()-lyraTaskLastRefresh>14000)lyraTaskLoad();},15000);
 </script>
 </body>
 </html>
