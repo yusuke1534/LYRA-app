@@ -121,6 +121,21 @@
 .lyra-translation-toggle{padding:7px 12px;background:#f7fbff;border-bottom:1px solid #dceaf8}
 .lyra-translation-toggle button{border:1px solid #b9dced;border-radius:14px;padding:8px 14px;background:linear-gradient(140deg,#fff,#e4f7ff);color:#126395;font-weight:750;box-shadow:0 2px 6px #176da012;cursor:pointer}
 .lyra-translation-toggle button[aria-expanded="true"]{background:#dff5ff}
+
+/* LYRA white/black/blue visual refresh: keep existing structure and functions */
+:root{--ink:#080808;--muted:#101010;--line:#e2e8f0;color:#080808}
+html,body{background:#fff!important}
+#app,.phone,.phone-main,#screenContent,.home-view,.phone-head,#phoneHeader{background:#fff!important}
+#app > #bottomNav:not(.hide),.bottom-nav{background:#fff!important;border-top:1px solid #e2e8f0!important;box-shadow:0 -3px 14px #0000000b!important}
+#bottomNav .nav-item:not(.active),#bottomNav .nav-item:not(.active) .icon{color:#050505!important;stroke:#050505!important;opacity:1!important}
+#bottomNav .nav-item.active,#bottomNav .nav-item.active .icon{color:#087cfa!important;stroke:#087cfa!important;opacity:1!important}
+#bottomNav .nav-item.active:before{background:#e4f3ff!important;border-radius:22px!important}
+#screenContent .chat-time,#screenContent .chat-preview,#screenContent .small-link,#screenContent .empty,#screenContent .tiny-time,#screenContent .fav-title,#screenContent .brand-description,#screenContent .right-desc,#screenContent .lyra-together-muted,#screenContent .lyra-muted,#screenContent .muted,#screenContent .subtle,#screenContent .meta,#screenContent small{color:#090909!important;opacity:1!important}
+#screenContent .chat-name,#screenContent .section-head h2,#screenContent h1,#screenContent h2,#screenContent h3,#screenContent p,#screenContent label,#screenContent time{opacity:1}
+#screenContent .chat-item,#screenContent .feature-card,#screenContent .preview,#screenContent .lyra-together-card{background-color:#fff}
+#screenContent input,#screenContent textarea,#screenContent select{color:#080808}
+#screenContent input::placeholder,#screenContent textarea::placeholder{color:#262626!important;opacity:1}
+@media(max-width:700px){body{background:#fff!important}}
 </style>
 
 <style>
