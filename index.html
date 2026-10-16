@@ -143,6 +143,12 @@ html,body{background:#fff!important}
 .lyra-paymemo h4{margin:12px 0 6px}.lyra-paymemo ul{list-style:none;padding:0;margin:6px 0}
 .lyra-paymemo li{padding:8px 0;border-bottom:1px solid #e6edf5}.lyra-paymemo input{accent-color:#087cf4;width:18px;height:18px;vertical-align:middle}
 .lyra-paymemo small,.lyra-paymemo-note{font-size:12px;line-height:1.65}
+
+/* Make the long Together creation form usable on iPhone. */
+.modal-layer:has(#lyraTogetherForm){z-index:110!important;align-items:flex-end!important}
+.modal-layer:has(#lyraTogetherForm) .sheet{max-height:calc(100dvh - env(safe-area-inset-top) - 22px)!important;overscroll-behavior:contain;padding-bottom:calc(22px + env(safe-area-inset-bottom))!important}
+#lyraTogetherForm .lyra-t-submit-dock{position:sticky;bottom:calc(-22px - env(safe-area-inset-bottom));z-index:5;background:#fff;padding:12px 0 calc(12px + env(safe-area-inset-bottom));border-top:1px solid #dce8f4;margin-top:18px;box-shadow:0 -8px 20px #fff}
+#lyraTogetherForm .lyra-t-submit-dock .primary-btn{margin:0!important;min-height:52px;background:linear-gradient(110deg,#0757dc,#00b6ed)!important;color:#fff!important;font-weight:800}
 </style>
 
 <style>
@@ -1897,7 +1903,7 @@ function lyraTogetherNew(groupId=null,friendId=null){
  ${groups.length?`<div class="lyra-t-small-title">グループから選ぶ（グループ全員を招待）</div><div class="lyra-t-picks"><label><input type="radio" name="lyraTogetherGroup" value="" ${selectedGroup?'':'checked'}> 指定しない</label>${groups.map(g=>`<label><input type="radio" name="lyraTogetherGroup" value="${g.group_id}" ${g.group_id===selectedGroup?'checked':''}> ${escapeHTML(g.group_name)}（${Number(g.member_count)||1}人）</label>`).join('')}</div>`:''}
  ${friends.length?`<div class="lyra-t-small-title">友だちを個別に招待（複数選択可）</div><div class="lyra-t-picks">${friends.map(f=>`<label><input type="checkbox" name="lyraTogetherFriend" value="${f.other_user_id}" ${f.other_user_id===friendId?'checked':''}> ${escapeHTML(f.other_display_name)}</label>`).join('')}</div>`:''}
  ${hasAnyone?'':'<p class="lyra-t-error">友だちまたはグループが必要です。先にトークから友だちを追加してください。</p>'}
- <button type="submit" id="lyraTogetherCreateButton" class="primary-btn" ${hasAnyone?'':'disabled'}>予定を作成する</button>
+ <div class="lyra-t-submit-dock"><button type="submit" id="lyraTogetherCreateButton" class="primary-btn" ${hasAnyone?'':'disabled'}>予定を作成する</button></div>
  </form></div>`);
 }
 async function lyraTogetherCreate(ev){
