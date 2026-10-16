@@ -151,10 +151,6 @@ html,body{background:#fff!important}
 #lyraTogetherForm .lyra-t-submit-dock .primary-btn{margin:0!important;min-height:52px;background:linear-gradient(110deg,#0757dc,#00b6ed)!important;color:#fff!important;font-weight:800}
 
 /* Invite: keep the primary share action visible in the scrolling modal. */
-.modal-layer:has(.lyra-invite-sticky-action){z-index:120!important;align-items:flex-end!important}
-.modal-layer:has(.lyra-invite-sticky-action) .sheet{max-height:calc(100dvh - env(safe-area-inset-top) - 12px)!important;overflow-y:auto!important;overscroll-behavior:contain;padding-bottom:0!important}
-.lyra-invite-sticky-action{position:sticky;bottom:0;z-index:12;background:#fff;border-top:1px solid #d4e5f5;padding:12px 0 calc(14px + env(safe-area-inset-bottom));box-shadow:0 -8px 22px #fff}
-.lyra-invite-sticky-action .primary-btn{display:block;width:100%;margin:0!important;min-height:54px;border-radius:15px;background:linear-gradient(105deg,#0758dc,#03a8e8)!important;color:#fff!important;font-weight:800!important;box-shadow:0 7px 18px #007bd53a}
 </style>
 
 <style>
@@ -488,6 +484,19 @@ html,body,#app,.phone,.phone-main,.bottom-nav{background:#fff!important;}
   color:#000000!important;
   -webkit-text-fill-color:#000000!important;
 }
+</style>
+<style id="lyra-finalize-cta-visible-fix">
+/* Restore high-contrast finalization CTA without changing its action or eligibility. */
+.lyra-t-finalize{background:#fff!important;background-image:none!important;}
+.lyra-t-finalize > button.primary-btn:not(:disabled){
+ background:#0759d4!important;
+ background-image:linear-gradient(120deg,#0759d4,#009bea)!important;
+ color:#fff!important;-webkit-text-fill-color:#fff!important;
+ border:1px solid #0879e8!important;
+ box-shadow:0 7px 18px rgba(0,104,220,.20)!important;
+ opacity:1!important;visibility:visible!important;
+}
+.lyra-t-finalize > button.primary-btn:not(:disabled) *{color:#fff!important;-webkit-text-fill-color:#fff!important;}
 </style>
 </head>
 <body>
@@ -1821,7 +1830,6 @@ function lyraTogetherCard(e){
    <div class="lyra-t-actions">
     ${mapURL?`<a href="${escapeHTML(mapURL)}" target="_blank" rel="noopener noreferrer">地図で見る ↗</a>`:''}
     <button type="button" onclick="lyraTogetherShare('${e.event_id}')">予定を共有</button>
-    <button type="button" class="lyra-invite-open" onclick="lyraInviteOpen('${e.event_id}')">💌 招待状を作る</button>
     ${owned&&e.status!=='canceled'?`<button type="button" onclick="lyraTogetherPlace('${e.event_id}')">場所を編集</button>`:''}
    </div>
    ${lyraPlusPanel(e.event_id)}
@@ -2000,64 +2008,6 @@ async function lyraTogetherShare(eventId){
  try{if(navigator.share)await navigator.share({text:content});else if(navigator.clipboard){await navigator.clipboard.writeText(content);lyraStatus('予定をコピーしました');}else overlay(`<h3 class="sheet-title">予定の共有</h3><textarea class="field" rows="6" readonly onclick="this.select()">${escapeHTML(content)}</textarea><button class="primary-btn" onclick="closeModal()">閉じる</button>`)}catch(e){if(e?.name!=='AbortError')lyraStatus('共有できませんでした');}
 }
 
-
-/* LYRA Invite: invitation card generated from existing Together event.
-   No public event disclosure; invitation does not add members or bypass RLS. */
-let lyraInviteEventId=null;
-function lyraInviteContent(){
- const e=lyraTogetherEvents.find(x=>x.event_id===lyraInviteEventId);
- if(!e)return '';
- const style=document.getElementById('lyraInviteStyle')?.value||'classic';
- const message=(document.getElementById('lyraInviteMessage')?.value||'').trim();
- const date=(e.options||[]).find(o=>String(o.id)===String(e.final_option_id));
- const marks={classic:'💌',party:'🎉',birthday:'🎂',travel:'✈️'};
- const heading=marks[style]||'💌';
- const candidates=e.status==='open'?(e.options||[]).map(o=>'・'+lyraTogetherTime(o.start_at)).join('\n'):'';
- return `${heading} LYRA Invite\n\n【${e.title}】\n${message?message+'\n\n':''}${date?'📅 日時：'+lyraTogetherTime(date.start_at):'📅 日程調整中\n'+candidates}${e.meeting_place?'\n📍 集合：'+e.meeting_place:''}${e.meeting_address?'\n🗺 住所：'+e.meeting_address:''}\n\nLYRAの「みんなで」で投票・出欠を確認できます。\n※予定を閲覧できるのは、LYRAで参加者として招待された人だけです。`;
-}
-function lyraInvitePreview(){
- const el=document.getElementById('lyraInvitePreview');
- if(el)el.textContent=lyraInviteContent();
-}
-function lyraInviteOpen(id){
- const e=lyraTogetherEvents.find(x=>x.event_id===id);
- if(!e||e.status==='canceled')return lyraStatus('この予定の招待状は作成できません');
- lyraInviteEventId=id;
- overlay(`<button class="sheet-close" onclick="closeModal()">${icon('close','small')}</button>
- <div class="lyra-invite-modal"><h3 class="sheet-title">💌 LYRA Invite — 招待状</h3>
- <p>「みんなで」の予定から招待文を作成します。招待相手は既存の参加者に限られます。</p>
- <label class="field-label" for="lyraInviteStyle">デザイン</label>
- <select id="lyraInviteStyle" class="field" onchange="lyraInvitePreview()">
- <option value="classic">💌 シンプル</option><option value="party">🎉 パーティー</option>
- <option value="birthday">🎂 誕生日</option><option value="travel">✈️ 旅行</option></select>
- <label class="field-label" for="lyraInviteMessage">ひとことメッセージ（任意）</label>
- <textarea class="field" id="lyraInviteMessage" rows="3" maxlength="200" oninput="lyraInvitePreview()" placeholder="例：みんなで楽しい時間を過ごしましょう！"></textarea>
- <div class="lyra-invite-preview" id="lyraInvitePreview" aria-live="polite"></div>
- <div class="lyra-invite-buttons"><button type="button" class="lyra-invite-copy" onclick="lyraInviteCopy()">文章をコピー</button></div>
- <small>この機能は招待文の作成・共有です。新しい参加者の追加や、LYRA外からの出欠回答には対応していません。</small></div>
- <div class="lyra-invite-sticky-action"><button type="button" class="primary-btn" onclick="lyraInviteShare()">💌 招待状を送る・共有</button></div>`);
- lyraInvitePreview();
-}
-async function lyraInviteCopy(){
- const content=lyraInviteContent();
- if(!content)return;
- try{
-  if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(content);
-  else{
-   const area=document.createElement('textarea');area.value=content;area.style.position='fixed';area.style.opacity='0';
-   document.body.append(area);area.select();const ok=document.execCommand('copy');area.remove();
-   if(!ok)throw Error('copy failed');
-  }
-  lyraStatus('招待状の文章をコピーしました');
- }catch(e){lyraStatus('コピーできません。プレビューの文章を選択してください');}
-}
-async function lyraInviteShare(){
- const content=lyraInviteContent();if(!content)return;
- try{
-  if(navigator.share)await navigator.share({title:'LYRA Invite',text:content});
-  else await lyraInviteCopy();
- }catch(e){if(e?.name!=='AbortError')lyraStatus('共有できませんでした');}
-}
 
 // LYRA Together+ : shared RSVP, expenses, checklist, and free local reminders.
 const lyraPlusCache=new Map();
@@ -2266,13 +2216,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')lyraGlobalClose()});
 .lyra-media-lightbox img{max-width:100%;max-height:85dvh;object-fit:contain;border-radius:12px}
 .lyra-media-lightbox button{position:absolute;top:20px;right:20px;border:0;border-radius:15px;background:white;color:#145383;padding:12px 16px;font-weight:bold}
 
-/* LYRA Invite: preserve white backgrounds and dark legible text. */
-.lyra-invite-modal{color:#101010;max-width:540px;margin:auto;padding:6px 4px 18px}
-.lyra-invite-modal p,.lyra-invite-modal small{color:#161616;line-height:1.65}
-.lyra-invite-preview{white-space:pre-wrap;overflow-wrap:anywhere;background:#fff;border:1px solid #b7d8f1;border-radius:18px;padding:20px;margin:14px 0;line-height:1.8;color:#111;font-size:14px;box-shadow:0 5px 22px #0b4d9010}
-.lyra-invite-buttons{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
-.lyra-invite-copy{border:1px solid #a6c9e6;border-radius:12px;background:#fff;color:#000;padding:12px 16px;font-weight:800}
-.lyra-invite-open{color:#095eac!important}
+
 </style>
 <script>
 // LYRA Media v1: private photos & short videos in 1:1 and group chats.
