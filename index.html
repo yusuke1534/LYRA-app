@@ -1750,14 +1750,26 @@ function lyraTogetherCard(e){
   </div>`:''}
  </article>`;
 }
+function lyraTogetherVisibleEvents(){
+ const now=Date.now();
+ return lyraTogetherEvents.filter(e=>{
+  if(e.status==='canceled')return false;
+  if(e.status!=='fixed')return true;
+  const selected=(Array.isArray(e.options)?e.options:[]).find(o=>String(o.id)===String(e.final_option_id));
+  if(!selected?.start_at)return true; // 日時不明の場合は誤って隠さない
+  const start=new Date(selected.start_at).getTime();
+  return !Number.isFinite(start)||start>now;
+ });
+}
 function lyraTogetherView(){
  lyraTogetherEnsureAccount();
+ const visibleEvents=lyraTogetherVisibleEvents();
  return `<div class="screen-pad lyra-together-page">
   <div class="lyra-t-heading"><div><div class="lyra-t-eyebrow">LYRA Together</div><h2>みんなで</h2><p>友だちと予定を決めて、集合場所を共有しよう。</p></div><div class="lyra-t-hero-icon">✧</div></div>
   <div class="lyra-t-cta"><div><strong>次の予定、ここで決めよう。</strong><span>日程調整・1人1票・集合場所の共有</span></div><button type="button" onclick="lyraTogetherNew()">＋ 予定を作る</button></div>
-  <div class="lyra-t-section"><h3>参加している予定 <small>${lyraTogetherEvents.length}件</small></h3><button type="button" onclick="lyraTogetherLoad(true)">↻ 更新</button></div>
+  <div class="lyra-t-section"><h3>参加している予定 <small>${visibleEvents.length}件</small></h3><button type="button" onclick="lyraTogetherLoad(true)">↻ 更新</button></div>
   ${lyraTogetherError?`<p class="lyra-t-error">${escapeHTML(lyraTogetherError)}</p>`:''}
-  <div class="lyra-t-list">${lyraTogetherEvents.length?lyraTogetherEvents.map(lyraTogetherCard).join(''):`<div class="lyra-t-empty"><span>🗓️</span><strong>${lyraTogetherLoaded?'まだ予定はありません':'予定を読み込んでいます…'}</strong><p>友だちやグループを選んで、最初の予定を作りましょう。</p></div>`}</div>
+  <div class="lyra-t-list">${visibleEvents.length?visibleEvents.map(lyraTogetherCard).join(''):`<div class="lyra-t-empty"><span>🗓️</span><strong>${lyraTogetherLoaded?'まだ予定はありません':'予定を読み込んでいます…'}</strong><p>友だちやグループを選んで、最初の予定を作りましょう。</p></div>`}</div>
   <p class="lyra-t-footer">共有相手は招待された人だけ。位置情報の自動追跡や有料AIは使いません。</p>
  </div>`;
 }
@@ -1785,6 +1797,13 @@ async function lyraTogetherLoad(force=false){
  }catch(e){lyraTogetherError=lyraTogetherErrorText(e);lyraTogetherLoaded=true;}
  finally{lyraTogetherBusy=false;if(view==='together'&&lyraUser?.id===account)lyraPaint();}
 }
+// 開いている間に予定開始時刻を迎えた場合も一覧を更新する。
+setInterval(()=>{
+ if(view!=='together'||document.hidden||!lyraUser)return;
+ const count=lyraTogetherVisibleEvents().length;
+ const label=document.querySelector('.lyra-t-section h3 small');
+ if(label&&label.textContent!==count+'件')lyraPaint();
+},15000);
 function lyraTogetherDateField(){return `<label class="lyra-t-date-row"><input type="datetime-local" name="lyraTogetherTime" class="field" required><button type="button" onclick="this.parentElement.remove()" aria-label="候補を削除">×</button></label>`;}
 function lyraTogetherDateAdd(){
  const root=document.getElementById('lyraTogetherDates');if(!root)return;
