@@ -425,6 +425,21 @@ html,body{background:#fff!important}
   body #app > #screenContent > * {max-width:100%;}
 }
 </style>
+
+<style id="lyra-pure-white-cards-20261016">
+/* White panels throughout the application. Keep primary blue actions intact. */
+html,body,#app,.phone,.phone-main,.bottom-nav{background:#fff!important;}
+:is(.lyra-together-page,.home-view,.screen-pad,.room,.messages,.group-room,.live-view,.lyra-global-page) :is(.lyra-t-cta,.lyra-t-empty,.lyra-t-card,.lyra-t-list>div,.lyra-plus,.lyra-t-panel,.lyra-t-detail,.lyra-t-form,.lyra-t-box,.lyra-t-vote,.lyra-t-actions,.lyra-t-member,.lyra-t-row,.card,.panel,.empty,.searchbar,.sheet-choice,.setup-banner,.demo-note,.live-request,.live-auth-switch,.pill:not(.active),.secondary-btn){background:#fff!important;background-image:none!important;}
+.lyra-t-cta,.lyra-t-empty,.lyra-plus,.lyra-t-card{background:#fff!important;background-image:none!important;}
+.room{background:#fff!important;background-image:none!important;}
+/* Preserve saturated primary actions and selection state. */
+.lyra-t-cta button,.primary-btn,.send-btn,.nav-item.active{background-image:initial;}
+.lyra-t-cta button{background:linear-gradient(135deg,#158ff3,#00c1e0)!important;color:#fff!important;}
+.nav-item:not(.active){color:#000!important;}
+.nav-item:not(.active) svg{color:#000!important;}
+/* Readable text in white cards; do not alter text over blue buttons. */
+.lyra-t-cta strong,.lyra-t-cta span,.lyra-t-empty strong,.lyra-t-heading p,.lyra-t-section h3,.lyra-t-section small,.lyra-t-footer{color:#000!important;}
+</style>
 </head>
 <body>
 <div class="ambient"><div class="orb one"></div><div class="orb two"></div><div class="orb three"></div></div>
@@ -1784,7 +1799,7 @@ function lyraTogetherView(){
   <div class="lyra-t-cta"><div><strong>次の予定、ここで決めよう。</strong><span>日程調整・1人1票・集合場所の共有</span></div><button type="button" onclick="lyraTogetherNew()">＋ 予定を作る</button></div>
   <div class="lyra-t-section"><h3>参加している予定 <small>${visibleEvents.length}件</small></h3><button type="button" onclick="lyraTogetherLoad(true)">↻ 更新</button></div>
   ${lyraTogetherError?`<p class="lyra-t-error">${escapeHTML(lyraTogetherError)}</p>`:''}
-  <div class="lyra-t-list">${visibleEvents.length?visibleEvents.map(lyraTogetherCard).join(''):`<div class="lyra-t-empty"><span>🗓️</span><strong>${lyraTogetherLoaded?'まだ予定はありません':'予定を読み込んでいます…'}</strong><p>友だちやグループを選んで、最初の予定を作りましょう。</p></div>`}</div>
+  <div class="lyra-t-list">${visibleEvents.length?visibleEvents.map(lyraTogetherCard).join(''):`<div class="lyra-t-empty"><span>🗓️</span><strong>${lyraTogetherLoaded?'まだ予定はありません':'予定を読み込んでいます…'}</strong></div>`}</div>
   <p class="lyra-t-footer">共有相手は招待された人だけ。位置情報の自動追跡や有料AIは使いません。</p>
  </div>`;
 }
