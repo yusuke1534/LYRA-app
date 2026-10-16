@@ -1053,7 +1053,7 @@ function lyraTranslateRecent(){
 function lyraRoom(){const c=lyraAccepted().find(c=>c.other_user_id===lyraActivePeer);if(!c)return '<p class="live-empty">この友だちは見つかりません。</p>';
  return `<div class="room"><header class="room-head"><button class="back" aria-label="戻る" onclick="go('talk')">${icon('back')}</button>${lyraAvatar(c.other_display_name,43,c.other_user_id)}<span class="room-title">${escapeHTML(c.other_display_name)}<small>LYRA チャット · 暗号化されたHTTPS通信</small></span></header>
  <div class="lyra-safety-tools"><button type="button" onclick="lyraSafetyMenu()">🛡️ ブロック・通報</button></div>${lyraTranslationTools()}<div id="lyraChatPin"></div><div class="messages" id="messageScroller">${lyraBubbleList()}</div>
- <form class="chat-composer" onsubmit="lyraSendMessage(event)"><button type="button" class="compose-icon" onclick="lyraChatExtras()" aria-label="追加メニュー">${icon('plus')}</button><textarea id="messageInput" rows="1" maxlength="4000" placeholder="メッセージを入力" aria-label="メッセージ"></textarea><button id="lyraSendButton" class="send-btn" type="submit" aria-label="送信">${icon('send','small')}</button></form></div>`;
+ <form class="chat-composer" onsubmit="lyraSendMessage(event)"><button type="button" class="compose-icon" onclick="lyraMediaChoose()" aria-label="写真または動画を送る">${icon('plus')}</button><textarea id="messageInput" rows="1" maxlength="4000" placeholder="メッセージを入力" aria-label="メッセージ"></textarea><button id="lyraSendButton" class="send-btn" type="submit" aria-label="送信">${icon('send','small')}</button></form></div>`;
 }
 function lyraBubbleList(){return lyraRoomMessages.length?lyraRoomMessages.map(m=>{
  const key=lyraTranslationId(m.id),busy=lyraTranslationPending.has(key),ready=lyraTranslationCache.has(key),isMine=m.sender_id===lyraUser.id;
@@ -2676,29 +2676,10 @@ lyraGroupRefreshRoom=async function(...args){const id=lyraGroupActive;await lyra
 .lyra-pin-bar span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lyra-pin-bar button{border:0;border-radius:10px;background:#fff;color:#155fa6;padding:6px 9px}
 </style>
+<style id="lyra-location-menu-fix">
+</style>
 <script id="lyra-chat-simple-extras">
 let lyraChatPins=[],lyraChatReactions=[],lyraChatExtrasPeer=null,lyraChatExtrasBusy=false;
-function lyraChatExtras(){
- overlay(`<button class="sheet-close" onclick="closeModal()">×</button><h3 class="sheet-title">トークに追加</h3><button class="primary-btn" onclick="closeModal();lyraChatSendLocation()">📍 現在地を送信</button><p style="font-size:12px;color:#536779;margin-top:10px">位置情報は許可した場合だけ取得し、地図へのリンクをメッセージとして送信します。継続的な位置追跡はしません。</p>`);
-}
-async function lyraChatSendLocation(){
- if(!lyraActivePeer||!lyraUser||!lyraClient)return;
- if(!navigator.geolocation){lyraStatus('この端末では位置情報を利用できません');return;}
- lyraStatus('現在地を取得しています…');
- navigator.geolocation.getCurrentPosition(async pos=>{
-  const peer=lyraActivePeer;
-  const lat=pos.coords.latitude.toFixed(6),lon=pos.coords.longitude.toFixed(6);
-  const message=`📍 現在地\nhttps://www.google.com/maps?q=${lat},${lon}`;
-  if(!confirm('現在地をこの相手に送信しますか？\n'+lat+', '+lon))return;
-  try{
-   if(lyraSafetyBlocked.has(peer))throw Error('ブロック中の相手には送信できません');
-   const {data,error}=await lyraClient.from('lyra_messages').insert({recipient_id:peer,body:message}).select('id').single();
-   if(error)throw error;
-   if(data?.id)lyraNotifyMessage(data.id).catch(()=>{});
-   await lyraRefreshRoom();await lyraLoadConnections(false);lyraStatus('現在地を送信しました');
-  }catch(e){lyraStatus('現在地を送信できません: '+e.message)}
- },err=>lyraStatus('位置情報を取得できません: '+(err.code===1?'位置情報の利用を許可してください':err.message)),{enableHighAccuracy:true,timeout:12000,maximumAge:30000});
-}
 function lyraChatActions(id){
  const m=lyraRoomMessages.find(x=>x.id===id);
  if(!m)return;
