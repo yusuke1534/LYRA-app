@@ -445,6 +445,31 @@ html,body,#app,.phone,.phone-main,.bottom-nav{background:#fff!important;}
 .lyra-push-card button.primary-btn:not(:disabled){background:#0879e8!important;background-image:linear-gradient(135deg,#0759d4,#009bea)!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border:1px solid #0879e8!important;box-shadow:0 6px 16px rgba(0,104,220,.20)!important;opacity:1!important;}
 .lyra-push-card button.primary-btn:not(:disabled) *{color:#fff!important;-webkit-text-fill-color:#fff!important;}
 </style>
+<style id="lyra-invite-cards-white-fix-20261016">
+/* Invite screen: only the two large panels turn pure white. */
+.lyra-push-card,.live-code-card{
+  background:#ffffff!important;
+  background-image:none!important;
+  border:1px solid #b8daf6!important;
+}
+.lyra-push-card p,.lyra-push-card b,.live-code-card span,.live-code-card p{
+  color:#000000!important;
+  -webkit-text-fill-color:#000000!important;
+}
+/* Keep all existing button appearances except the previously unreadable copy button. */
+.live-code-card > button.primary-btn[onclick*="lyraCopyCode"]{
+  background:#ffffff!important;
+  background-image:none!important;
+  color:#000000!important;
+  -webkit-text-fill-color:#000000!important;
+  border:1px solid #b8daf6!important;
+  opacity:1!important;
+}
+.live-code-card > button.primary-btn[onclick*="lyraCopyCode"] *{
+  color:#000000!important;
+  -webkit-text-fill-color:#000000!important;
+}
+</style>
 </head>
 <body>
 <div class="ambient"><div class="orb one"></div><div class="orb two"></div><div class="orb three"></div></div>
