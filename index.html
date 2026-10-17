@@ -610,11 +610,11 @@ body,.phone,.home-view,.screen-pad{background:linear-gradient(160deg,#eff9ff 0%,
 .room .messages .msg, .lyra-group-room .messages .msg {width:100%;min-width:0;box-sizing:border-box;}
 .room .messages .msg .lyra-msg-holder,
 .lyra-group-room .messages .msg .lyra-msg-holder {
-  flex:0 1 79%;width:79%;max-width:79%;min-width:0;box-sizing:border-box;
+  flex:1 1 0%;width:auto;max-width:100%;min-width:0;box-sizing:border-box;
 }
 .room .messages .msg .lyra-msg-holder .msg-bubble,
 .lyra-group-room .messages .msg .lyra-msg-holder .msg-bubble {
-  display:block;width:max-content;max-width:100%;min-width:0;box-sizing:border-box;
+  display:block;width:fit-content;max-width:100%;min-width:0;box-sizing:border-box;
   white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;
   writing-mode:horizontal-tb;text-orientation:mixed;
 }
@@ -625,7 +625,7 @@ body,.phone,.home-view,.screen-pad{background:linear-gradient(160deg,#eff9ff 0%,
 .room .messages .msg .msg-time,.lyra-group-room .messages .msg .msg-time {flex:0 0 auto;}
 @media(max-width:480px){
   .room .messages,.lyra-group-room .messages{padding-left:12px;padding-right:12px;}
-  .room .messages .msg .lyra-msg-holder,.lyra-group-room .messages .msg .lyra-msg-holder{flex-basis:76%;width:76%;max-width:76%;}
+  .room .messages .msg .lyra-msg-holder,.lyra-group-room .messages .msg .lyra-msg-holder{flex:1 1 0%;max-width:100%;}
 }
 </style>
 </head>
