@@ -1157,7 +1157,7 @@ function lyraRoom(){const c=lyraAccepted().find(c=>c.other_user_id===lyraActiveP
 }
 function lyraBubbleList(){const visibleMessages=lyraRoomMessages.filter(m=>!m.recalled_at);return visibleMessages.length?visibleMessages.map(m=>{
  const key=lyraTranslationId(m.id),busy=lyraTranslationPending.has(key),ready=lyraTranslationCache.has(key),isMine=m.sender_id===lyraUser.id;
- return `<div class="msg ${isMine?'mine':''}">${!isMine?lyraAvatar(lyraAccepted().find(c=>c.other_user_id===lyraActivePeer)?.other_display_name,32,lyraActivePeer):''}<div class="lyra-msg-holder"><div class="msg-bubble">${m.recalled_at?escapeHTML(m.body):(lyraMediaBubble(m,false)||escapeHTML(m.body))}${m.recalled_at||lyraMediaRows.has('d:'+m.id)?'':lyraTranslatedFragment(m.id)}</div><div class="lyra-chat-actions"><button type="button" onclick="lyraChatActions('${escapeHTML(m.id)}')" aria-label="メッセージの操作">♡ リアクション・固定</button><span class="lyra-chat-reactions" data-message="${escapeHTML(m.id)}"></span></div><button class="lyra-translate-action" type="button" ${busy||!!m.recalled_at||['📷 写真','🎬 動画'].includes(m.body)?'disabled':''} onclick="lyraTranslateMessage('${escapeHTML(m.id)}')">${m.recalled_at?'取り消し済み':['📷 写真','🎬 動画'].includes(m.body)?'メディア':busy?'翻訳中…':ready?'✓ 翻訳済み':'🌐 翻訳'}</button>${isMine&&!m.recalled_at?`<button class="lyra-translate-action" type="button" onclick="lyraRecallMessage('${escapeHTML(m.id)}')">↩ 送信取り消し</button>`:''}</div><span class="msg-time">${isMine&&m.read_at?'<span class="lyra-read-chip">既読</span>':''}${lyraFmtTime(m.created_at)}</span></div>`;
+ return `<div class="msg ${isMine?'mine':''}">${!isMine?lyraAvatar(lyraAccepted().find(c=>c.other_user_id===lyraActivePeer)?.other_display_name,32,lyraActivePeer):''}<div class="lyra-msg-holder"><div class="msg-bubble lyra-longpress-target" data-lyra-longpress="${escapeHTML(m.id)}" role="button" tabindex="0" aria-label="メッセージを長押しして操作" title="長押しまたは右クリックで操作">${m.recalled_at?escapeHTML(m.body):(lyraMediaBubble(m,false)||escapeHTML(m.body))}${m.recalled_at||lyraMediaRows.has('d:'+m.id)?'':lyraTranslatedFragment(m.id)}</div><div class="lyra-chat-actions"><span class="lyra-chat-reactions" data-message="${escapeHTML(m.id)}"></span></div><span class="msg-time">${isMine&&m.read_at?'<span class="lyra-read-chip">既読</span>':''}${lyraFmtTime(m.created_at)}</span></div>`;
  }).join(''):'<div class="live-chat-empty">チャットを始めましょう。<br>送ったメッセージは相手の端末にも届きます。</div>'}
 async function lyraRefreshRoom(){const id=lyraActivePeer,user=lyraUser;if(!id||!user||!lyraClient)return;let query=`and(sender_id.eq.${user.id},recipient_id.eq.${id}),and(sender_id.eq.${id},recipient_id.eq.${user.id})`;
  try{let {data,error}=await lyraClient.from('lyra_messages').select('id,sender_id,recipient_id,body,created_at,read_at,recalled_at').or(query).order('created_at',{ascending:false}).limit(200);if(error)throw error;if(id!==lyraActivePeer)return;lyraRoomMessages=(data||[]).filter(m=>!m.recalled_at).reverse();let scroller=$('#messageScroller');if(scroller){scroller.innerHTML=lyraBubbleList();lyraChatDecorate();scrollBottom()}lyraTranslateRecent();if(view==='room'&&lyraRoomMessages.some(m=>m.recipient_id===user.id&&!m.read_at))lyraMarkRead(id)}
@@ -2784,10 +2784,17 @@ lyraGroupRefreshRoom=async function(...args){const id=lyraGroupActive;await lyra
 <script id="lyra-chat-simple-extras">
 let lyraChatPins=[],lyraChatReactions=[],lyraChatExtrasPeer=null,lyraChatExtrasBusy=false;
 function lyraChatActions(id){
- const m=lyraRoomMessages.find(x=>x.id===id);
+ const m=lyraRoomMessages.find(x=>x.id===id&&!x.recalled_at);
  if(!m)return;
- const pinned=lyraChatPins.some(x=>x.message_id===id&&x.pinned_by===lyraUser.id);
- overlay(`<button class="sheet-close" onclick="closeModal()">×</button><h3 class="sheet-title">メッセージの操作</h3><p style="overflow-wrap:anywhere">${escapeHTML(String(m.body).slice(0,110))}</p><div style="display:flex;flex-wrap:wrap;gap:8px;margin:14px 0">${['👍','❤️','😂','😊','👏','🙏'].map(e=>`<button class="lyra-task-btn" style="border:0;background:#eaf4ff;border-radius:12px;padding:10px;font-size:23px" onclick="lyraChatReact('${id}','${e}')">${e}</button>`).join('')}</div><button class="primary-btn" onclick="lyraChatPin('${id}',${!pinned})">${pinned?'📌 固定を解除':'📌 このメッセージを固定'}</button>`);
+ const pinned=lyraChatPins.some(x=>x.message_id===id&&x.pinned_by===lyraUser?.id);
+ const own=m.sender_id===lyraUser?.id;
+ const media=['📷 写真','🎬 動画'].includes(m.body);
+ const safe=escapeHTML(id);
+ const preview=media?(m.body==='📷 写真'?'写真':'動画'):String(m.body||'').slice(0,90);
+ overlay(`<button class="sheet-close" onclick="closeModal()">×</button><h3 class="sheet-title">メッセージの操作</h3><p class="lyra-action-preview">${escapeHTML(preview)}</p><div class="lyra-longpress-actions"><button type="button" onclick="lyraShowReactionChoices('${safe}')">❤️ リアクション</button><button type="button" onclick="lyraChatPin('${safe}',${!pinned})">${pinned?'📌 固定を解除':'📌 固定'}</button>${media?'':`<button type="button" onclick="closeModal();lyraTranslateMessage('${safe}')">🌐 翻訳</button>`}${own?`<button type="button" class="lyra-action-danger" onclick="closeModal();lyraRecallMessage('${safe}')">↩ 送信取り消し</button>`:''}</div>`);
+}
+function lyraShowReactionChoices(id){
+ overlay(`<button class="sheet-close" onclick="closeModal()">×</button><h3 class="sheet-title">リアクションを選択</h3><div class="lyra-longpress-emojis">${['👍','❤️','😂','😊','👏','🙏'].map(e=>`<button type="button" onclick="lyraChatReact('${escapeHTML(id)}','${e}')">${e}</button>`).join('')}</div><button class="lyra-action-back" type="button" onclick="lyraChatActions('${escapeHTML(id)}')">← 操作メニューに戻る</button>`);
 }
 async function lyraChatLoadExtras(){
  if(!lyraClient||!lyraUser||!lyraActivePeer||lyraChatExtrasBusy)return;
@@ -2855,6 +2862,39 @@ lyraPaint=function(...args){
 };
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&view==='room')lyraChatLoadExtras()});
 setInterval(()=>{if(view==='room'&&!document.hidden)lyraChatLoadExtras()},12000);
+</script>
+
+<style id="lyra-longpress-ui-v1">
+.lyra-chat-actions{min-height:0!important;margin:0!important;gap:0!important}
+.lyra-chat-actions:empty{display:none!important}
+.lyra-chat-reactions:empty{display:none!important}
+.lyra-longpress-target{touch-action:pan-y;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;cursor:context-menu}
+.lyra-longpress-target.lyra-longpress-active{filter:brightness(.96);outline:2px solid #38b8ff;outline-offset:2px}
+.lyra-longpress-actions{display:grid;gap:10px;margin-top:18px}
+.lyra-longpress-actions button,.lyra-action-back{min-height:52px;border-radius:16px;border:1px solid #c4e7ff;background:linear-gradient(140deg,#fff,#e7f5ff);color:#0753a1;font-weight:700;font-size:16px;text-align:left;padding:12px 16px;box-shadow:0 3px 10px #0864b01a}
+.lyra-longpress-actions .lyra-action-danger{color:#c33e46;background:#fff5f5;border-color:#ffd8db}
+.lyra-action-preview{overflow-wrap:anywhere;max-height:75px;overflow:hidden;color:#58718e;background:#f2f9ff;border-radius:12px;padding:12px}
+.lyra-longpress-emojis{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+.lyra-longpress-emojis button{font-size:26px;border-radius:15px;padding:12px;background:#e8f5ff;border:1px solid #c6e5ff}
+</style>
+<script id="lyra-longpress-gesture-v1">
+(function(){
+ let timer=null,origin=null,handled=false,active=null;
+ function clear(){if(timer){clearTimeout(timer);timer=null}active?.classList.remove('lyra-longpress-active');active=null;origin=null}
+ function target(e){return e.target instanceof Element?e.target.closest('[data-lyra-longpress]'):null}
+ document.addEventListener('pointerdown',e=>{
+  const el=target(e);if(!el||e.button!==0)return;
+  clear();handled=false;active=el;origin={x:e.clientX,y:e.clientY,id:el.dataset.lyraLongpress};
+  timer=setTimeout(()=>{timer=null;if(!active||!origin)return;const id=origin.id;handled=true;active.classList.add('lyra-longpress-active');navigator.vibrate?.(15);lyraChatActions(id);clear()},500);
+ },{passive:true});
+ document.addEventListener('pointermove',e=>{if(origin&&Math.hypot(e.clientX-origin.x,e.clientY-origin.y)>12)clear()},{passive:true});
+ document.addEventListener('pointerup',clear,{passive:true});
+ document.addEventListener('pointercancel',clear,{passive:true});
+ document.addEventListener('scroll',clear,{capture:true,passive:true});
+ document.addEventListener('contextmenu',e=>{const el=target(e);if(!el)return;e.preventDefault();clear();handled=true;lyraChatActions(el.dataset.lyraLongpress)});
+ document.addEventListener('keydown',e=>{const el=target(e);if(el&&(e.key==='Enter'||e.key===' ')){e.preventDefault();lyraChatActions(el.dataset.lyraLongpress)}});
+ document.addEventListener('click',e=>{if(handled&&target(e)){e.preventDefault();e.stopPropagation();handled=false}},{capture:true});
+})();
 </script>
 </body>
 </html>
