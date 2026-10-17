@@ -2889,19 +2889,23 @@ setInterval(()=>{if(view==='room'&&!document.hidden)lyraChatLoadExtras()},12000)
 <script id="lyra-longpress-gesture-v1">
 (function(){
  let timer=null,origin=null,handled=false,active=null;
- function clear(){if(timer){clearTimeout(timer);timer=null}active?.classList.remove('lyra-longpress-active');active=null;origin=null}
+ function clearPress(){if(timer){clearTimeout(timer);timer=null}active?.classList.remove('lyra-longpress-active');active=null;origin=null}
  function target(e){return e.target instanceof Element?e.target.closest('[data-lyra-longpress]'):null}
- document.addEventListener('pointerdown',e=>{
-  const el=target(e);if(!el||e.button!==0)return;
-  clear();handled=false;active=el;origin={x:e.clientX,y:e.clientY,id:el.dataset.lyraLongpress};
-  timer=setTimeout(()=>{timer=null;if(!active||!origin)return;const id=origin.id;handled=true;active.classList.add('lyra-longpress-active');navigator.vibrate?.(15);lyraChatActions(id);clear()},500);
- },{passive:true});
- document.addEventListener('pointermove',e=>{if(origin&&Math.hypot(e.clientX-origin.x,e.clientY-origin.y)>12)clear()},{passive:true});
- document.addEventListener('pointerup',clear,{passive:true});
- document.addEventListener('pointercancel',clear,{passive:true});
- document.addEventListener('scroll',clear,{capture:true,passive:true});
- document.addEventListener('contextmenu',e=>{const el=target(e);if(!el)return;e.preventDefault();clear();handled=true;lyraChatActions(el.dataset.lyraLongpress)});
- document.addEventListener('keydown',e=>{const el=target(e);if(el&&(e.key==='Enter'||e.key===' ')){e.preventDefault();lyraChatActions(el.dataset.lyraLongpress)}});
+ function openActions(id,el){if(handled)return;handled=true;clearPress();const targetEl=el||active;targetEl?.classList.add('lyra-longpress-active');navigator.vibrate?.(15);lyraChatActions(id);setTimeout(()=>targetEl?.classList.remove('lyra-longpress-active'),260)}
+ function start(el,x,y,id){clearPress();handled=false;active=el;origin={x,y,id};timer=setTimeout(()=>{if(!active||!origin)return;const targetEl=active,targetId=origin.id;clearPress();openActions(targetId,targetEl)},550)}
+ function move(x,y){if(origin&&Math.hypot(x-origin.x,y-origin.y)>24)clearPress()}
+ document.addEventListener('pointerdown',e=>{const el=target(e);if(!el)return;if(e.pointerType==='mouse'&&e.button!==0)return;if(e.pointerType!=='mouse'&&e.isPrimary===false)return;start(el,e.clientX,e.clientY,el.dataset.lyraLongpress)},{passive:true});
+ document.addEventListener('pointermove',e=>move(e.clientX,e.clientY),{passive:true});
+ document.addEventListener('pointerup',clearPress,{passive:true});
+ document.addEventListener('pointercancel',clearPress,{passive:true});
+ /* Safari fallback: keep the long-press timer working when Pointer Events are incomplete. */
+ document.addEventListener('touchstart',e=>{const el=target(e);const t=e.changedTouches?.[0];if(el&&t)start(el,t.clientX,t.clientY,el.dataset.lyraLongpress)},{passive:true});
+ document.addEventListener('touchmove',e=>{const t=e.changedTouches?.[0];if(t)move(t.clientX,t.clientY)},{passive:true});
+ document.addEventListener('touchend',clearPress,{passive:true});
+ document.addEventListener('touchcancel',clearPress,{passive:true});
+ document.addEventListener('scroll',clearPress,{capture:true,passive:true});
+ document.addEventListener('contextmenu',e=>{const el=target(e);if(!el)return;e.preventDefault();openActions(el.dataset.lyraLongpress,el)});
+ document.addEventListener('keydown',e=>{const el=target(e);if(el&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openActions(el.dataset.lyraLongpress,el)}});
  document.addEventListener('click',e=>{if(handled&&target(e)){e.preventDefault();e.stopPropagation();handled=false}},{capture:true});
 })();
 </script>
