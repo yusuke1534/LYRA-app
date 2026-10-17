@@ -1112,12 +1112,12 @@ function lyraRoom(){const c=lyraAccepted().find(c=>c.other_user_id===lyraActiveP
  <div class="lyra-safety-tools"><button type="button" onclick="lyraSafetyMenu()">🛡️ ブロック・通報</button></div>${lyraTranslationTools()}<div id="lyraChatPin"></div><div class="messages" id="messageScroller">${lyraBubbleList()}</div>
  <form class="chat-composer" onsubmit="lyraSendMessage(event)"><button type="button" class="compose-icon" onclick="lyraMediaChoose()" aria-label="写真または動画を送る">${icon('plus')}</button><textarea id="messageInput" rows="1" maxlength="4000" placeholder="メッセージを入力" aria-label="メッセージ"></textarea><button id="lyraSendButton" class="send-btn" type="submit" aria-label="送信">${icon('send','small')}</button></form></div>`;
 }
-function lyraBubbleList(){return lyraRoomMessages.length?lyraRoomMessages.map(m=>{
+function lyraBubbleList(){const visibleMessages=lyraRoomMessages.filter(m=>!m.recalled_at);return visibleMessages.length?visibleMessages.map(m=>{
  const key=lyraTranslationId(m.id),busy=lyraTranslationPending.has(key),ready=lyraTranslationCache.has(key),isMine=m.sender_id===lyraUser.id;
  return `<div class="msg ${isMine?'mine':''}">${!isMine?lyraAvatar(lyraAccepted().find(c=>c.other_user_id===lyraActivePeer)?.other_display_name,32,lyraActivePeer):''}<div class="lyra-msg-holder"><div class="msg-bubble">${m.recalled_at?escapeHTML(m.body):(lyraMediaBubble(m,false)||escapeHTML(m.body))}${m.recalled_at||lyraMediaRows.has('d:'+m.id)?'':lyraTranslatedFragment(m.id)}</div><div class="lyra-chat-actions"><button type="button" onclick="lyraChatActions('${escapeHTML(m.id)}')" aria-label="メッセージの操作">♡ リアクション・固定</button><span class="lyra-chat-reactions" data-message="${escapeHTML(m.id)}"></span></div><button class="lyra-translate-action" type="button" ${busy||!!m.recalled_at||['📷 写真','🎬 動画'].includes(m.body)?'disabled':''} onclick="lyraTranslateMessage('${escapeHTML(m.id)}')">${m.recalled_at?'取り消し済み':['📷 写真','🎬 動画'].includes(m.body)?'メディア':busy?'翻訳中…':ready?'✓ 翻訳済み':'🌐 翻訳'}</button>${isMine&&!m.recalled_at?`<button class="lyra-translate-action" type="button" onclick="lyraRecallMessage('${escapeHTML(m.id)}')">↩ 送信取り消し</button>`:''}</div><span class="msg-time">${isMine&&m.read_at?'<span class="lyra-read-chip">既読</span>':''}${lyraFmtTime(m.created_at)}</span></div>`;
  }).join(''):'<div class="live-chat-empty">チャットを始めましょう。<br>送ったメッセージは相手の端末にも届きます。</div>'}
 async function lyraRefreshRoom(){const id=lyraActivePeer,user=lyraUser;if(!id||!user||!lyraClient)return;let query=`and(sender_id.eq.${user.id},recipient_id.eq.${id}),and(sender_id.eq.${id},recipient_id.eq.${user.id})`;
- try{let {data,error}=await lyraClient.from('lyra_messages').select('id,sender_id,recipient_id,body,created_at,read_at,recalled_at').or(query).order('created_at',{ascending:false}).limit(200);if(error)throw error;if(id!==lyraActivePeer)return;lyraRoomMessages=(data||[]).reverse();let scroller=$('#messageScroller');if(scroller){scroller.innerHTML=lyraBubbleList();lyraChatDecorate();scrollBottom()}lyraTranslateRecent();if(view==='room'&&lyraRoomMessages.some(m=>m.recipient_id===user.id&&!m.read_at))lyraMarkRead(id)}
+ try{let {data,error}=await lyraClient.from('lyra_messages').select('id,sender_id,recipient_id,body,created_at,read_at,recalled_at').or(query).order('created_at',{ascending:false}).limit(200);if(error)throw error;if(id!==lyraActivePeer)return;lyraRoomMessages=(data||[]).filter(m=>!m.recalled_at).reverse();let scroller=$('#messageScroller');if(scroller){scroller.innerHTML=lyraBubbleList();lyraChatDecorate();scrollBottom()}lyraTranslateRecent();if(view==='room'&&lyraRoomMessages.some(m=>m.recipient_id===user.id&&!m.read_at))lyraMarkRead(id)}
  catch(e){lyraStatus('メッセージ取得エラー: '+e.message)}}
 let lyraSafetyBlocked=new Set();
 async function lyraSafetyLoad(){
@@ -1168,7 +1168,7 @@ async function lyraLoadConnections(paint=true){if(!lyraClient||!lyraUser||lyraRe
   if(lyraUser?.id!==current)return;
   lyraConnections=rows||[];
    await lyraFetchFriendAvatars();
-  const {data:recent,error:err}=await lyraClient.from('lyra_messages').select('sender_id,recipient_id,body,created_at,recalled_at').or(`sender_id.eq.${current},recipient_id.eq.${current}`).order('created_at',{ascending:false}).limit(150);
+  const {data:recent,error:err}=await lyraClient.from('lyra_messages').select('sender_id,recipient_id,body,created_at,recalled_at').or(`sender_id.eq.${current},recipient_id.eq.${current}`).is('recalled_at',null).order('created_at',{ascending:false}).limit(150);
   if(err)throw err;let mostRecent={};for(const m of recent||[]){let other=m.sender_id===current?m.recipient_id:m.sender_id;if(!mostRecent[other])mostRecent[other]=m}
   lyraLatest=mostRecent;
   const {data:unreadRows,error:unreadErr}=await lyraClient.rpc('lyra_unread_counts');
