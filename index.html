@@ -3288,5 +3288,85 @@ function lyraOrbSentFlash(){
 }
 .room .room-head button:focus-visible{outline:2px solid #0878ed!important;outline-offset:2px!important}
 </style>
+
+<style id="lyra-chat-compact-header-20261018">
+/* Compact chat toolbar: leave message rendering and application logic unchanged. */
+@supports selector(:has(*)) {
+.room:has(> .lyra-safety-tools) {
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+ grid-template-rows:auto auto auto minmax(0,1fr) auto!important;
+ align-content:stretch!important;
+ min-height:0!important;
+}
+.room:has(> .lyra-safety-tools) > .room-head {
+ grid-column:1/-1!important;grid-row:1!important;
+ min-height:54px!important;padding:5px 10px!important;gap:7px!important;
+ box-shadow:none!important;
+}
+.room:has(> .lyra-safety-tools) > .room-head .room-title {
+ min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;
+ white-space:nowrap!important;font-size:14px!important;
+}
+.room:has(> .lyra-safety-tools) > .room-head .room-title small {
+ display:none!important;
+}
+.room:has(> .lyra-safety-tools) > .room-head img,
+.room:has(> .lyra-safety-tools) > .room-head .lyra-avatar {
+ width:34px!important;height:34px!important;flex:0 0 34px!important;
+}
+.room:has(> .lyra-safety-tools) > .room-head button.back,
+.room:has(> .lyra-safety-tools) > .room-head button.ic-btn {
+ width:35px!important;height:35px!important;min-width:35px!important;
+ flex:0 0 35px!important;padding:6px!important;
+}
+.room:has(> .lyra-safety-tools) > .lyra-safety-tools {
+ grid-column:2!important;grid-row:2!important;
+ padding:4px 9px 4px 0!important;text-align:right!important;
+ background:#fff!important;border:0!important;min-width:0!important;
+}
+.room:has(> .lyra-safety-tools) > .lyra-translation-toggle {
+ grid-column:1!important;grid-row:2!important;
+ padding:4px 0 4px 9px!important;min-width:0!important;
+ background:#fff!important;border:0!important;
+}
+.room:has(> .lyra-safety-tools) > .lyra-safety-tools button,
+.room:has(> .lyra-safety-tools) > .lyra-translation-toggle button {
+ font-size:12px!important;min-height:32px!important;
+ padding:5px 9px!important;border-radius:12px!important;
+ white-space:nowrap!important;max-width:100%!important;
+ box-shadow:none!important;
+}
+.room:has(> .lyra-safety-tools) > #lyraTranslationPanel {
+ grid-column:1/-1!important;grid-row:3!important;
+}
+.room:has(> .lyra-safety-tools) > #lyraTranslationPanel[hidden]{display:none!important;}
+.room:has(> .lyra-safety-tools) > #lyraChatPin {
+ grid-column:1/-1!important;grid-row:3!important;
+ background:#fff!important;padding:0 9px!important;border-color:#f0f3f7!important;
+}
+.room:has(> .lyra-safety-tools) > #lyraChatPin .lyra-pin-bar {
+ padding:4px 0!important;min-height:30px!important;font-size:11px!important;
+}
+.room:has(> .lyra-safety-tools) > #lyraChatPin .lyra-pin-bar button {
+ padding:4px 8px!important;font-size:11px!important;box-shadow:none!important;
+}
+.room:has(> .lyra-safety-tools) > .messages {
+ grid-column:1/-1!important;grid-row:4!important;min-height:0!important;
+ overflow-y:auto!important;overflow-x:hidden!important;
+}
+.room:has(> .lyra-safety-tools) > .chat-composer {
+ grid-column:1/-1!important;grid-row:5!important;
+}
+}
+/* Translation options are positioned without displacing the pinned row. */
+.room:has(> .lyra-safety-tools):has(> #lyraTranslationPanel:not([hidden])) {
+ grid-template-rows:auto auto auto auto minmax(0,1fr) auto!important;
+}
+.room:has(> .lyra-safety-tools) > #lyraTranslationPanel:not([hidden]) {grid-row:3!important;}
+.room:has(> .lyra-safety-tools) > #lyraTranslationPanel:not([hidden]) ~ #lyraChatPin {grid-row:4!important;}
+.room:has(> .lyra-safety-tools) > #lyraTranslationPanel:not([hidden]) ~ .messages {grid-row:5!important;}
+.room:has(> .lyra-safety-tools) > #lyraTranslationPanel:not([hidden]) ~ .chat-composer {grid-row:6!important;}
+</style>
 </body>
 </html>
