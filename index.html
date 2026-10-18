@@ -3368,5 +3368,30 @@ function lyraOrbSentFlash(){
 .room:has(> .lyra-safety-tools) > #lyraTranslationPanel:not([hidden]) ~ .messages {grid-row:5!important;}
 .room:has(> .lyra-safety-tools) > #lyraTranslationPanel:not([hidden]) ~ .chat-composer {grid-row:6!important;}
 </style>
+
+<style id="lyra-chat-avatar-alignment-20261019">
+/* Keep the contact photo and its blue circular holder the same size and position. */
+.room:has(> .lyra-safety-tools) > .room-head > .live-avatar {
+  --sz:38px!important;
+  width:38px!important;height:38px!important;
+  min-width:38px!important;min-height:38px!important;
+  flex:0 0 38px!important;box-sizing:border-box!important;
+  padding:0!important;margin:0!important;
+  border:2px solid #bfeeff!important;
+  border-radius:50%!important;overflow:hidden!important;
+  display:inline-grid!important;place-items:center!important;
+  vertical-align:middle!important;
+}
+.room:has(> .lyra-safety-tools) > .room-head > .live-avatar > img {
+  position:absolute!important;inset:0!important;
+  width:100%!important;height:100%!important;
+  min-width:0!important;min-height:0!important;
+  max-width:100%!important;max-height:100%!important;
+  object-fit:cover!important;object-position:center!important;
+  border:0!important;border-radius:50%!important;
+  box-shadow:none!important;transform:none!important;
+  box-sizing:border-box!important;
+}
+</style>
 </body>
 </html>
