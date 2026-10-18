@@ -3242,5 +3242,51 @@ function lyraOrbSentFlash(){
   box-shadow:none !important;
 }
 </style>
+
+<style id="lyra-profile-together-flat-cards-20261018">
+/* マイページの通知カードと友だちコードカード */
+.lyra-push-card, .live-code-card,
+/* みんなで：予定作成カードと予定なしカード */
+.lyra-together-page .lyra-t-cta,
+.lyra-together-page .lyra-t-empty {
+  background: #fff !important;
+  background-image: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+/* 内部の濃い青い操作ボタンは変更しない */
+</style>
+
+<style id="lyra-chat-header-contrast-20261018">
+/* White-header contrast fix: back, voice call and video call only. */
+.room .room-head button.back,
+.room .room-head button.ic-btn,
+.lyra-group-room .room-head button.back,
+.lyra-group-room .room-head button.ic-btn {
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  flex:0 0 42px!important;width:42px!important;height:42px!important;min-width:42px!important;
+  padding:8px!important;margin:0!important;opacity:1!important;visibility:visible!important;
+  color:#0868ce!important;-webkit-text-fill-color:#0868ce!important;
+  background:#f0f7ff!important;border:1px solid #d7e9fc!important;
+  border-radius:50%!important;box-shadow:0 2px 7px rgba(16,95,178,.10)!important;
+}
+.room .room-head button.back svg,
+.room .room-head button.ic-btn svg,
+.lyra-group-room .room-head button.back svg,
+.lyra-group-room .room-head button.ic-btn svg {
+  width:23px!important;height:23px!important;stroke:#0868ce!important;
+  color:#0868ce!important;opacity:1!important;filter:none!important;
+}
+.room .room-head button.back :is(path,polyline,line,circle,rect),
+.room .room-head button.ic-btn :is(path,polyline,line,circle,rect),
+.lyra-group-room .room-head button.back :is(path,polyline,line,circle,rect),
+.lyra-group-room .room-head button.ic-btn :is(path,polyline,line,circle,rect){
+  stroke:#0868ce!important;
+}
+.room .room-head button:focus-visible{outline:2px solid #0878ed!important;outline-offset:2px!important}
+</style>
 </body>
 </html>
