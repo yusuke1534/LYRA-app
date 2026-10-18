@@ -3218,5 +3218,29 @@ function lyraOrbSentFlash(){
  window.setTimeout(()=>room.classList.remove('lyra-light-trail'),1050);
 }
 </script>
+
+<style id="lyra-flat-contact-list-20261018">
+/* Remove only the visual card outlines around group and friend chat entries. */
+#lyraGroupList > .chat-item,
+#filteredChats > .chat-item,
+.home-view .chat-list > .chat-item,
+.lyra-group-section .chat-item,
+.chat-list > .chat-item {
+  background:#fff !important;
+  background-image:none !important;
+  border:0 !important;
+  border-bottom:0 !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+  outline:0 !important;
+  filter:none !important;
+}
+#lyraGroupList, #filteredChats, .home-view .chat-list {
+  background:#fff !important;
+  background-image:none !important;
+  border:0 !important;
+  box-shadow:none !important;
+}
+</style>
 </body>
 </html>
